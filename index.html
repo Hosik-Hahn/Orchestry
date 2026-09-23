@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>관객이 믹스하는 음악</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#1A1446; --bg2:#241C5C; --ink:#F5F3FF; --mute:#B9B3E6; --line:rgba(245,243,255,.16);
+  --t1:#FF5E5B; --t2:#FFB400; --t3:#00C2A8; --t4:#3D9BFF; --t5:#C86BFA;
+  --num:"Bricolage Grotesque", "Gothic A1", system-ui, sans-serif;
+  --txt:"Gothic A1", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){ --bg:#F4F2FF; --bg2:#E8E4FF; --ink:#1A1446; --mute:#5B5490; --line:rgba(26,20,70,.14); color-scheme:light; }
+}
+:root[data-theme="light"]{ --bg:#F4F2FF; --bg2:#E8E4FF; --ink:#1A1446; --mute:#5B5490; --line:rgba(26,20,70,.14); color-scheme:light; }
+:root[data-theme="dark"]{ --bg:#1A1446; --bg2:#241C5C; --ink:#F5F3FF; --mute:#B9B3E6; --line:rgba(245,243,255,.16); }
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--txt);-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.hidden{display:none!important}
+
+/* ---------- 진행(무대) 화면 ---------- */
+#stage{display:flex;flex-direction:column;height:100%}
+.bar{display:flex;align-items:center;gap:12px;padding:14px 20px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.bar h1{font-size:clamp(18px,2.2vw,26px);font-weight:800;margin:0;letter-spacing:-.02em;flex:1 1 auto}
+.total{font-family:var(--num);font-weight:500;color:var(--mute);font-size:15px}
+.total b{color:var(--ink);font-weight:800;font-size:20px}
+.btn{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 16px;font-weight:600;font-size:14px}
+.btn:hover{background:var(--bg2)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{border-color:var(--t1);color:var(--t1)}
+
+.mix{flex:1;position:relative;min-height:0;overflow:hidden}
+.ball{position:absolute;left:0;top:0;margin:0;border-radius:50%;background:var(--c);color:#15102F;
+  display:flex;align-items:center;justify-content:center;text-align:center;will-change:transform;
+  box-shadow:0 0 calc(var(--lvl,0) * 70px) calc(var(--lvl,0) * 14px) var(--c), inset -18px -22px 40px rgba(21,16,47,.18), inset 14px 16px 30px rgba(255,255,255,.28)}
+.ball .name{font-weight:800;font-size:var(--fs,16px);width:78%;word-break:keep-all;line-height:1.2;letter-spacing:-.02em}
+.ball.tiny .name{display:none}
+.trk{display:flex;gap:10px;align-items:flex-end;margin-bottom:14px}
+.trk .field{flex:1;margin:0}
+.trk .dotc{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none;margin-bottom:14px}
+.filebtn{flex:none;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;cursor:pointer;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--bg2)}
+.qr{position:absolute;right:20px;bottom:20px;background:#fff;color:#1A1446;border-radius:18px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center;width:230px}
+.qr #qrbox{display:flex;justify-content:center}
+.qr #qrbox img,.qr #qrbox canvas{width:198px!important;height:198px!important}
+.qr p{margin:10px 0 0;font-weight:800;font-size:15px}
+.qr .hint{font-weight:400;font-size:12px;color:#5B5490;margin-top:4px}
+
+.panel{position:fixed;inset:0;background:rgba(10,8,30,.55);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:5}
+.sheet{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:24px;width:min(520px,100%)}
+.sheet h2{margin:0 0 16px;font-size:20px}
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font-size:13px;color:var(--mute);margin-bottom:6px;font-weight:600}
+.field input{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg2)}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:8px}
+.note{font-size:13px;color:var(--mute);line-height:1.6}
+
+/* ---------- 투표(관객) 화면 ---------- */
+#vote{max-width:520px;margin:0 auto;padding:28px 20px 40px;display:flex;flex-direction:column;gap:14px;min-height:100%}
+#vote h1{font-size:28px;font-weight:800;margin:0;letter-spacing:-.02em;line-height:1.25;word-break:keep-all}
+#vote .lead{margin:0 0 6px;color:var(--mute);line-height:1.6}
+.opt{position:relative;display:flex;align-items:center;gap:14px;width:100%;padding:18px 18px;border-radius:18px;border:2px solid transparent;background:var(--bg2);text-align:left;overflow:hidden;transition:transform .15s}
+.opt:active{transform:scale(.98)}
+.opt .fill{position:absolute;inset:0 auto 0 0;width:var(--w,0%);background:var(--c);opacity:.22;transition:width .8s cubic-bezier(.3,.9,.3,1)}
+.opt .dot{width:40px;height:40px;border-radius:50%;background:var(--c);flex:none;position:relative;display:grid;place-items:center;font-family:var(--num);font-weight:800;color:#15102F}
+.opt .lbl{flex:1;font-weight:800;font-size:18px;position:relative;word-break:keep-all}
+.opt .p{font-family:var(--num);font-weight:800;font-size:18px;position:relative}
+.opt.on{border-color:var(--c)}
+.opt.on .dot::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid var(--c)}
+.status{min-height:24px;font-weight:600;text-align:center;color:var(--mute)}
+.back{align-self:center;margin-top:auto}
+
+.msg{display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:var(--mute);line-height:1.7}
+
+@media (max-width:720px){
+  .qr{position:static;margin:12px auto;width:200px}
+  .qr #qrbox img,.qr #qrbox canvas{width:168px!important;height:168px!important}
+}
+@media (prefers-reduced-motion:reduce){.opt .fill{transition:none}}
+</style>
+</head>
+<body>
+
+<div id="boot" class="msg">불러오는 중…</div>
+
+<!-- 진행 화면 -->
+<section id="stage" class="hidden" aria-label="진행 화면">
+  <div class="bar">
+    <h1 id="stTitle">관객이 믹스하는 음악</h1>
+    <span class="total">총 <b id="total">0</b>표</span>
+    <button class="btn primary" id="playBtn">▶ 재생</button>
+    <button class="btn" id="qrBtn">QR 숨기기</button>
+    <button class="btn" id="setBtn">설정</button>
+    <button class="btn hidden" id="logoutBtn">로그아웃</button>
+    <button class="btn" id="toVote">투표 화면 보기</button>
+  </div>
+  <div class="mix" id="mix"></div>
+  <div class="qr" id="qr">
+    <div id="qrbox"></div>
+    <p>QR로 투표하세요</p>
+    <div class="hint" id="qrHint"></div>
+  </div>
+</section>
+
+<!-- 설정 -->
+<div class="panel hidden" id="panel" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="sheet">
+    <h2 id="setTitle">설정</h2>
+    <label class="field"><span>제목</span><input id="fTitle" maxlength="60"></label>
+    <div id="fNames"></div>
+    <p class="note">음원 파일은 이 기기에서만 재생돼요. QR은 이 사이트 주소로 자동으로 만들어지고, 관객이 찍으면 투표 화면이 열립니다. <span id="who"></span></p>
+    <div class="row">
+      <button class="btn danger" id="resetBtn">투표 초기화</button>
+      <button class="btn" id="closeSet">닫기</button>
+      <button class="btn primary" id="saveSet">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 투표 화면 -->
+<section id="vote" class="hidden" aria-label="투표 화면">
+  <h1 id="vTitle">관객이 믹스하는 음악</h1>
+  <p class="lead">듣고 싶은 음원을 골라 주세요. 표를 많이 받을수록 그 소리가 커집니다. 언제든 다시 눌러 바꿀 수 있어요.</p>
+  <div id="opts" style="display:flex;flex-direction:column;gap:10px"></div>
+  <div class="status" id="vStatus" aria-live="polite"></div>
+  <button class="btn back hidden" id="toStage">진행 화면으로 돌아가기</button>
+</section>
+
+<script type="module">
+/* ================================================================
+   ① 여기에 Firebase 프로젝트 설정을 붙여 넣으세요
+   (Firebase 콘솔 → 프로젝트 설정 → 내 앱 → SDK 설정 및 구성 → "구성")
+   ================================================================ */
+const firebaseConfig = {
+  apiKey: "여기에_붙여넣기",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  appId: ""
+};
+/* ================================================================ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, onValue, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const MIN_TRACKS = 2, MAX_TRACKS = 12;
+const COLORS = ["#FF5E5B","#FFB400","#00C2A8","#3D9BFF","#C86BFA","#FF8FC7","#9BE15D","#FF8A3D","#5FD4F4","#F2E14C","#8C8CFF","#2EC27E"];
+const defName = i => `음원 ${i+1}`;
+const DEFAULT_CFG = { title:"관객이 믹스하는 음악", names:[0,1,2,3,4].map(defName) };
+const N = () => cfg.names.length;
+let cfg = structuredClone(DEFAULT_CFG);
+let counts = [0,0,0,0,0], lastVotes = [], total = 0, myChoice = null, voteDocs = [];
+let db = null, uid = null, isOwner = false, view = null;
+const $ = id => document.getElementById(id);
+
+/* ---------- 오디오 엔진 ---------- */
+const audio = {
+  ctx:null, master:null, tracks:[], playing:false, raf:0,
+  init(){
+    if (this.ctx) return;
+    this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+    this.master = this.ctx.createGain(); this.master.gain.value = .9;
+    this.master.connect(this.ctx.destination);
+    this.ensure(N());
+  },
+  ensure(n){
+    if (!this.ctx) return;
+    while (this.tracks.length < n){
+      const g = this.ctx.createGain(); g.gain.value = 0;
+      const an = this.ctx.createAnalyser(); an.fftSize = 512;
+      g.connect(an); an.connect(this.master);
+      this.tracks.push({ gain:g, analyser:an, buffer:null, nodes:[] });
+    }
+  },
+  fileNames:[],
+  async load(i, file){
+    this.init();
+    this.ensure(i+1);
+    const buf = await this.ctx.decodeAudioData(await file.arrayBuffer());
+    this.tracks[i].buffer = buf;
+    if (this.playing){ this.stop(); this.start(); }
+  },
+  demo(i, t0, out){
+    // 파일이 없을 때 쓰는 데모 소리: 음원마다 다른 음과 박자
+    const ctx = this.ctx;
+    const freqs = [110, 220, 329.63, 440, 659.25, 293.66, 392, 523.25, 164.81, 587.33, 783.99, 246.94];
+    const rates = [1, 2, 0.5, 4, 3, 1.5, 6, 2.5, 0.75, 5, 8, 1.25];
+    const o = ctx.createOscillator(); o.type = i%3===0 ? "triangle" : "sine"; o.frequency.value = freqs[i%12];
+    const amp = ctx.createGain(); amp.gain.value = .5;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = rates[i%12];
+    const lg = ctx.createGain(); lg.gain.value = .45;
+    lfo.connect(lg); lg.connect(amp.gain);
+    o.connect(amp); amp.connect(out);
+    o.start(t0); lfo.start(t0);
+    return [o, lfo];
+  },
+  start(){
+    this.init(); this.ensure(N()); this.ctx.resume();
+    const t0 = this.ctx.currentTime + .08;
+    this.tracks.slice(0, N()).forEach((t,i)=>{
+      if (t.buffer){
+        const s = this.ctx.createBufferSource(); s.buffer = t.buffer; s.loop = true;
+        s.connect(t.gain); s.start(t0); t.nodes = [s];
+      } else t.nodes = this.demo(i, t0, t.gain);
+    });
+    this.playing = true; this.apply(true); this.meter();
+  },
+  stop(){
+    this.tracks.forEach(t=>{ t.nodes.forEach(n=>{ try{n.stop()}catch(e){} }); t.nodes=[]; });
+    this.playing = false; cancelAnimationFrame(this.raf);
+    balls.forEach(b=>{ b.lvl = 0; b.el.style.setProperty("--lvl",0); });
+  },
+  apply(instant){
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.ensure(N());
+    this.tracks.forEach((t,i)=>{
+      const s = i < N() ? shares()[i] : 0;
+      const g = t.gain.gain;
+      g.cancelScheduledValues(now);
+      if (instant) g.setValueAtTime(s, now); else g.setTargetAtTime(s, now, .35);
+    });
+  },
+  meter(){
+    const data = new Uint8Array(512);
+    const tick = ()=>{
+      this.tracks.forEach((t,i)=>{
+        t.analyser.getByteTimeDomainData(data);
+        let sum=0; for (let k=0;k<data.length;k++){ const v=(data[k]-128)/128; sum+=v*v; }
+        const rms = Math.min(1, Math.sqrt(sum/data.length)*3.2);
+        if (balls[i]){ balls[i].lvl = rms; balls[i].el.style.setProperty("--lvl", rms.toFixed(3)); }
+      });
+      this.raf = requestAnimationFrame(tick);
+    };
+    tick();
+  }
+};
+
+function shares(){ return total ? counts.map(c=>c/total) : counts.map(()=>1/N()); }
+function pctText(i){ return Math.round(shares()[i]*100); }
+
+/* ---------- 진행 화면 ---------- */
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const balls = [];
+function syncBalls(){
+  const mix = $("mix"), W = mix.clientWidth || 800, H = mix.clientHeight || 500;
+  while (balls.length > N()) balls.pop().el.remove();
+  while (balls.length < N()){
+    const i = balls.length, el = document.createElement("div");
+    el.className = "ball"; el.style.setProperty("--c", COLORS[i]);
+    el.innerHTML = `<div class="name"></div>`;
+    mix.appendChild(el);
+    const a = Math.random()*Math.PI*2;
+    balls.push({ el, x: W*(.15+.7*Math.random()), y: H*(.2+.6*Math.random()), vx: Math.cos(a)*.6, vy: Math.sin(a)*.6, r: 20, tr: 20, lvl: 0, seed: Math.random()*1000 });
+  }
+}
+function buildStage(){ syncBalls(); requestAnimationFrame(step); }
+function targetRadii(){
+  const mix = $("mix"), W = mix.clientWidth, H = mix.clientHeight;
+  const fill = .42 * W * H, maxR = Math.min(W, H) * .46, minR = Math.max(20, Math.min(W,H)*(N()>7 ? .035 : .05));
+  shares().forEach((s,i)=>{ balls[i].tr = Math.min(maxR, Math.max(minR, Math.sqrt(s*fill/Math.PI))); });
+}
+function qrRect(){
+  const q = $("qr"); if (q.classList.contains("hidden") || getComputedStyle(q).position !== "absolute") return null;
+  const m = $("mix").getBoundingClientRect(), r = q.getBoundingClientRect();
+  return { l:r.left-m.left-10, t:r.top-m.top-10, r:r.right-m.left+10, b:r.bottom-m.top+10 };
+}
+let lastT = 0;
+function step(t){
+  requestAnimationFrame(step);
+  if (view !== "stage") return;
+  const dt = Math.min(2.5, lastT ? (t-lastT)/16.7 : 1); lastT = t;
+  const mix = $("mix"), W = mix.clientWidth, H = mix.clientHeight; if (!W || !H) return;
+  const ob = qrRect();
+  for (const b of balls){
+    b.r += (b.tr - b.r) * .06 * dt;
+    if (!reduceMotion){
+      // 잔잔하게 떠다니는 힘
+      const k = t/1000 + b.seed;
+      b.vx += Math.cos(k*.7) * .012 * dt; b.vy += Math.sin(k*.9) * .012 * dt - .002*dt;
+    }
+    const sp = Math.hypot(b.vx, b.vy), max = reduceMotion ? 0 : 1.2;
+    if (sp > max){ b.vx *= max/sp; b.vy *= max/sp; }
+    b.vx *= .998; b.vy *= .998;
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    if (b.x < b.r){ b.x = b.r; b.vx = Math.abs(b.vx); }
+    if (b.x > W-b.r){ b.x = W-b.r; b.vx = -Math.abs(b.vx); }
+    if (b.y < b.r){ b.y = b.r; b.vy = Math.abs(b.vy); }
+    if (b.y > H-b.r){ b.y = H-b.r; b.vy = -Math.abs(b.vy); }
+    if (ob){
+      const cx = Math.max(ob.l, Math.min(b.x, ob.r)), cy = Math.max(ob.t, Math.min(b.y, ob.b));
+      const dx = b.x-cx, dy = b.y-cy, d = Math.hypot(dx,dy);
+      if (d < b.r){
+        const nx = d ? dx/d : -1, ny = d ? dy/d : -1, push = (b.r-d)*.25;
+        b.x += nx*push; b.y += ny*push; b.vx += nx*.08; b.vy += ny*.08;
+      }
+    }
+  }
+  // 공끼리 부딪히면 부드럽게 밀어냄
+  for (let i=0;i<balls.length;i++) for (let j=i+1;j<balls.length;j++){
+    const a = balls[i], c = balls[j], dx = c.x-a.x, dy = c.y-a.y, d = Math.hypot(dx,dy) || .01, min = a.r+c.r+4;
+    if (d < min){
+      const nx = dx/d, ny = dy/d, o = (min-d)/2 * .5;
+      const wa = c.r/(a.r+c.r), wc = a.r/(a.r+c.r);
+      a.x -= nx*o*wa*2; a.y -= ny*o*wa*2; c.x += nx*o*wc*2; c.y += ny*o*wc*2;
+      const rel = (c.vx-a.vx)*nx + (c.vy-a.vy)*ny;
+      if (rel < 0){ a.vx += nx*rel*wa; a.vy += ny*rel*wa; c.vx -= nx*rel*wc; c.vy -= ny*rel*wc; }
+    }
+  }
+  for (const b of balls){
+    // 크기를 실제 픽셀로 바꿔서 글씨가 늘 선명하게 그려지도록
+    const R = b.r * (1 + b.lvl*.07), d = Math.round(R*2);
+    if (d !== b.d){
+      b.d = d; b.el.style.width = b.el.style.height = d + "px";
+      b.el.style.setProperty("--fs", Math.max(12, Math.round(R*.2)) + "px");
+      b.el.classList.toggle("tiny", R < 34);
+    }
+    b.el.style.transform = `translate(${(b.x-d/2).toFixed(1)}px, ${(b.y-d/2).toFixed(1)}px)`;
+  }
+}
+function renderStage(){
+  syncBalls();
+  $("stTitle").textContent = cfg.title; $("total").textContent = total;
+  balls.forEach((b,i)=>{
+    b.el.querySelector(".name").textContent = cfg.names[i];
+    b.el.setAttribute("aria-label", `${cfg.names[i]} ${pctText(i)}퍼센트, ${counts[i]}표`);
+  });
+  targetRadii();
+  audio.apply(false);
+}
+window.addEventListener("resize", ()=>{ if (balls.length) targetRadii(); });
+let lastQR = null;
+function renderQR(){
+  const box = $("qrbox");
+  const link = location.origin + location.pathname;
+  if (link === lastQR) return; lastQR = link; box.innerHTML = "";
+  $("qrHint").textContent = location.host;
+  if (window.QRCode) new QRCode(box, { text: link, width: 396, height: 396, colorDark:"#1A1446", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M });
+}
+
+$("playBtn").onclick = ()=>{
+  if (audio.playing){ audio.stop(); $("playBtn").textContent = "▶ 재생"; }
+  else { audio.start(); $("playBtn").textContent = "■ 정지"; }
+};
+$("qrBtn").onclick = ()=>{ const h = $("qr").classList.toggle("hidden"); $("qrBtn").textContent = h ? "QR 보이기" : "QR 숨기기"; };
+$("toVote").onclick = ()=> show("vote");
+$("toStage").onclick = ()=> show("stage");
+
+/* 설정 */
+let draft = [];
+function openSettings(){
+  $("fTitle").value = cfg.title;
+  draft = cfg.names.slice(); drawTracks();
+  resetArmed = false; $("resetBtn").textContent = "투표 초기화";
+  $("panel").classList.remove("hidden"); $("fTitle").focus();
+}
+function readDraft(){ $("fNames").querySelectorAll("input[data-i]").forEach(x=> draft[+x.dataset.i] = x.value); }
+function drawTracks(){
+  const esc = t => String(t).replace(/[<>&"]/g,"");
+  $("fNames").innerHTML = draft.map((n,i)=>`<div class="trk" style="--c:${COLORS[i]}"><span class="dotc"></span>
+    <label class="field"><span>음원 ${i+1} 이름</span><input data-i="${i}" maxlength="30"></label>
+    <label class="filebtn"><span>${audio.fileNames[i] ? "✓ " + esc(audio.fileNames[i]) : "음원 파일 선택"}</span><input type="file" accept="audio/*" hidden data-f="${i}"></label></div>`).join("")
+    + `<div class="row" style="justify-content:flex-start;margin:0 0 18px">
+        <button class="btn" id="addTrk" ${draft.length>=MAX_TRACKS?"disabled":""}>+ 음원 추가</button>
+        <button class="btn" id="delTrk" ${draft.length<=MIN_TRACKS?"disabled":""}>마지막 음원 빼기</button>
+        <span class="note" style="align-self:center">${draft.length}개 (최대 ${MAX_TRACKS}개)</span></div>`;
+  $("fNames").querySelectorAll("input[data-i]").forEach(inp=> inp.value = draft[inp.dataset.i]);
+  $("fNames").querySelectorAll("input[data-f]").forEach(inp=> inp.addEventListener("change", async e=>{
+    const i = +inp.dataset.f, f = e.target.files[0], tag = inp.previousElementSibling; if (!f) return;
+    tag.textContent = "불러오는 중…";
+    try { await audio.load(i, f); audio.fileNames[i] = f.name; tag.textContent = "✓ " + f.name; }
+    catch(err){ tag.textContent = "재생할 수 없는 파일"; }
+  }));
+  $("addTrk").onclick = ()=>{ readDraft(); if (draft.length < MAX_TRACKS){ draft.push(defName(draft.length)); drawTracks(); $("fNames").querySelector(`input[data-i="${draft.length-1}"]`).focus(); } };
+  $("delTrk").onclick = ()=>{ readDraft(); if (draft.length > MIN_TRACKS){ draft.pop(); drawTracks(); } };
+}
+$("setBtn").onclick = async ()=>{
+  if (!isAdmin()){
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+    catch(e){ return; }
+  }
+  openSettings();
+};
+$("logoutBtn").onclick = async ()=>{ await signOut(auth); };
+function isAdmin(){ return !!(auth.currentUser && !auth.currentUser.isAnonymous); }
+$("closeSet").onclick = ()=> $("panel").classList.add("hidden");
+$("saveSet").onclick = async ()=>{
+  const next = {
+    title: $("fTitle").value.trim() || DEFAULT_CFG.title,
+    names: [...$("fNames").querySelectorAll("input[data-i]")].map((x,i)=> x.value.trim() || defName(i)),
+  };
+  $("saveSet").disabled = true;
+  try { await set(ref(db, "config"), next); applyCfg(next); $("panel").classList.add("hidden"); }
+  catch(e){ alertNote("저장 권한이 없어요. 규칙에 넣은 진행자 이메일로 로그인했는지 확인해 주세요."); }
+  $("saveSet").disabled = false;
+};
+let resetArmed = false;
+$("resetBtn").onclick = async ()=>{
+  if (!resetArmed){ resetArmed = true; $("resetBtn").textContent = "한 번 더 누르면 모두 지워져요"; return; }
+  $("resetBtn").disabled = true; $("resetBtn").textContent = "지우는 중…";
+  try { await set(ref(db, "votes"), null); } catch(e){ alertNote("초기화 권한이 없어요."); }
+  $("resetBtn").disabled = false; resetArmed = false; $("resetBtn").textContent = "투표 초기화";
+};
+function alertNote(t){ $("setTitle").textContent = t; setTimeout(()=> $("setTitle").textContent = "설정", 4000); }
+
+/* ---------- 투표 화면 ---------- */
+function buildVote(){
+  const wrap = $("opts"); if (wrap.children.length === N()) return; wrap.innerHTML = "";
+  for (let i=0;i<N();i++){
+    const b = document.createElement("button");
+    b.className = "opt"; b.style.setProperty("--c", COLORS[i]);
+    b.innerHTML = `<span class="fill"></span><span class="dot">${i+1}</span><span class="lbl"></span><span class="p"></span>`;
+    b.onclick = ()=> castVote(i+1);
+    wrap.appendChild(b);
+  }
+}
+function renderVote(){
+  buildVote();
+  $("vTitle").textContent = cfg.title;
+  document.querySelectorAll(".opt").forEach((b,i)=>{
+    b.querySelector(".lbl").textContent = cfg.names[i];
+    b.querySelector(".p").textContent = total ? pctText(i)+"%" : "";
+    b.style.setProperty("--w", total ? (shares()[i]*100)+"%" : "0%");
+    b.classList.toggle("on", myChoice === i+1);
+    b.setAttribute("aria-pressed", myChoice === i+1);
+  });
+  if (!uid) $("vStatus").textContent = "연결하는 중…";
+  else if (myChoice && !sending) $("vStatus").textContent = `‘${cfg.names[myChoice-1]}’에 투표했어요`;
+}
+let sending = false;
+async function castVote(n){
+  if (!uid || sending || myChoice === n) return;
+  sending = true; const prev = myChoice; myChoice = n; renderVote();
+  $("vStatus").textContent = "보내는 중…";
+  try { await set(ref(db, "votes/"+uid), { c:n, t:serverTimestamp() }); sending = false; renderVote(); }
+  catch(e){ sending = false; myChoice = prev; renderVote(); $("vStatus").textContent = "투표를 보내지 못했어요. 다시 눌러 주세요."; }
+}
+
+/* ---------- 공통 ---------- */
+function recount(){
+  const c = new Array(N()).fill(0);
+  lastVotes.forEach(ch=>{ if (ch>=1 && ch<=N()) c[ch-1]++; });
+  counts = c; total = c.reduce((a,b)=>a+b,0);
+  if (myChoice && myChoice > N()) myChoice = null;
+}
+function applyCfg(next){
+  const changed = next.names.length !== N();
+  cfg = next; recount();
+  if (changed && audio.playing){ audio.stop(); audio.start(); }
+  if (view) renderAll();
+}
+function renderAll(){ if (view==="stage"){ renderStage(); renderQR(); } else renderVote(); }
+function show(v){
+  view = v;
+  $("boot").classList.add("hidden");
+  $("stage").classList.toggle("hidden", v!=="stage");
+  $("vote").classList.toggle("hidden", v!=="vote");
+  $("toStage").classList.toggle("hidden", !isOwner);
+  renderAll();
+}
+
+let auth;
+(function main(){
+  buildStage(); buildVote();
+  if (!firebaseConfig.databaseURL){ $("boot").textContent = "Firebase 설정이 아직 없어요. index.html 맨 위의 firebaseConfig를 채워 주세요."; return; }
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app); db = getDatabase(app);
+  const hostMode = new URLSearchParams(location.search).has("host");
+  isOwner = hostMode;
+
+  onAuthStateChanged(auth, u=>{
+    if (!u){ signInAnonymously(auth).catch(()=>{ $("vStatus").textContent = "연결하지 못했어요. 새로고침해 주세요."; }); return; }
+    uid = u.uid;
+    $("logoutBtn").classList.toggle("hidden", u.isAnonymous);
+    $("who").textContent = u.isAnonymous ? "" : `로그인: ${u.email}`;
+    recountFromRaw(); if (view) renderAll();
+  });
+
+  onValue(ref(db, "config"), s=>{
+    const d = s.val();
+    if (d) applyCfg({ title:d.title||DEFAULT_CFG.title, names:(Array.isArray(d.names) && d.names.length>=MIN_TRACKS ? d.names : DEFAULT_CFG.names).slice(0,MAX_TRACKS).map(String) });
+  });
+
+  onValue(ref(db, "votes"), s=>{ rawVotes = s.val() || {}; recountFromRaw(); if (view) renderAll(); },
+    ()=>{ $("vStatus").textContent = "실시간 연결이 끊겼어요. 새로고침해 주세요."; });
+
+  show(hostMode ? "stage" : "vote");
+})();
+let rawVotes = {};
+function recountFromRaw(){
+  voteDocs = Object.keys(rawVotes);
+  lastVotes = voteDocs.map(k=> Number(rawVotes[k]?.c));
+  if (!sending) myChoice = uid && rawVotes[uid] ? Number(rawVotes[uid].c) : null;
+  recount();
+}
+</script>
+</body>
+</html>
