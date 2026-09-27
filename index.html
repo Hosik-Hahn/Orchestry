@@ -87,7 +87,15 @@ body.reading .hint{display:none}
 #master button{width:40px;height:40px;border-radius:50%;border:0;background:var(--ink);color:#0A0E22;font-size:15px;flex:none;display:grid;place-items:center}
 #master .tm{font-variant-numeric:tabular-nums;font-weight:800;font-size:18px;letter-spacing:.02em;flex:none}
 #master .tot{font-variant-numeric:tabular-nums;color:var(--mute);font-size:14px;flex:none}
-#master input[type=range]{flex:1;min-width:60px;accent-color:#7EC8FF;height:4px}
+#master .track{position:relative;flex:1;min-width:60px;display:flex;align-items:center;height:28px}
+#master input[type=range]{width:100%;accent-color:#7EC8FF;height:4px;margin:0}
+#master .cues{position:absolute;left:8px;right:8px;top:0;height:8px;pointer-events:none}
+#master .cues i{position:absolute;top:0;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+#master .auto{width:auto;height:34px;border-radius:999px;padding:0 12px;font-size:13px;font-weight:800;background:transparent;color:var(--mute);border:1.5px solid var(--line)}
+#master .auto[aria-pressed="true"]{color:#0A0E22;background:#7EC8FF;border-color:#7EC8FF}
+.rg .cue{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px}
+.rg .cue span{color:var(--mute);flex:none}
+.rg .cue input{width:92px!important;flex:none;text-align:center;font-variant-numeric:tabular-nums}
 body.viewer #master{display:none}
 @media (max-width:900px){ #master{width:calc(100% - 40px);min-width:0} .hint{display:none} }
 @media (max-width:720px){
@@ -133,6 +141,18 @@ body.viewer #master{display:none}
 .rg .imgrow img{width:54px;height:36px;object-fit:cover;border-radius:6px;flex:none}
 .rg .imgrow .fn{flex:1;min-width:0;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rg .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.tabs{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:800;font-size:14px;color:var(--mute);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:#7EC8FF}
+.mv{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#11163A;margin-bottom:8px}
+.mv .no{width:22px;flex:none;color:var(--mute);font-size:12px;font-weight:800;text-align:right}
+.mv .sw{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 8px var(--c)}
+.mv input{width:78px;flex:none;padding:8px;border-radius:9px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px;text-align:center;font-variant-numeric:tabular-nums}
+.mv select{flex:1;min-width:0;padding:8px;border-radius:9px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px}
+.mv .ib{border:1.5px solid var(--line);background:transparent;border-radius:9px;width:34px;height:34px;flex:none;font-size:14px}
+.mv .ib:hover{background:var(--card2)}
+.mv.first{border-style:dashed;background:transparent}
+.mv.now{border-color:#7EC8FF}
 .note{font-size:12.5px;color:var(--mute);line-height:1.65;margin:14px 0 0}
 .box{border:1px dashed var(--line);border-radius:14px;padding:14px;margin-top:22px}
 .box h3{margin:0 0 6px;font-size:14px}
@@ -160,8 +180,9 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
 <div id="master" aria-label="전체 음원">
   <button id="mPlay" aria-label="재생">▶</button>
   <span class="tm" id="mTime">00:00</span>
-  <input type="range" id="mSeek" min="0" max="0" step="1" value="0" aria-label="재생 위치">
+  <div class="track"><div class="cues" id="mCues"></div><input type="range" id="mSeek" min="0" max="0" step="1" value="0" aria-label="재생 위치"></div>
   <span class="tot" id="mTotal">00:00</span>
+  <button class="auto" id="mAuto" aria-pressed="true" title="음원 시간에 맞춰 비행기가 자동으로 이동">✈ 자동</button>
 </div>
 
 <section id="info" aria-live="polite">
@@ -177,35 +198,51 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
 
 <aside id="panel" aria-label="관리">
   <div class="ph"><h2>관리</h2><button class="pbtn" id="closePanel">닫기</button></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="basic" aria-selected="false">기본</button>
+    <button role="tab" data-tab="regions" aria-selected="true">지역</button>
+    <button role="tab" data-tab="route" aria-selected="false">이동</button>
+  </div>
   <div class="pb">
-    <label class="fld"><span>제목</span><input id="fTitle" maxlength="60"></label>
-    <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
-    <label class="chk"><input type="checkbox" id="fLoop"> 곡이 끝나면 반복 재생</label>
-    <label class="chk"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
-    <label class="fld" style="margin-top:10px"><span>출발 지역 (처음 화면과 첫 비행의 출발점)</span>
-      <select id="fStart" style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px"></select></label>
-    <div class="sec"><span>전체 음원 (진행용 믹스)</span></div>
-    <div class="rg">
-      <div class="file"><span class="fn" id="mainFn"></span>
-        <label class="pbtn">음원 선택<input type="file" accept="audio/*" hidden id="mainFile"></label>
-        <button class="pbtn" id="mainClear">지우기</button>
+    <section class="tab" id="tab-basic" hidden>
+      <label class="fld"><span>제목</span><input id="fTitle" maxlength="60"></label>
+      <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
+      <label class="chk"><input type="checkbox" id="fLoop"> 관객 화면에서 지역 음원이 끝나면 반복 재생</label>
+      <label class="chk"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
+      <p class="note">여기서 넣은 음원·이미지는 이 컴퓨터의 브라우저에만 저장돼요. <span id="usage"></span></p>
+      <div class="box">
+        <h3>QR로 들어온 관객 화면에 반영하기</h3>
+        <p class="note" style="margin:0 0 10px">관객 휴대폰에는 GitHub에 올린 내용만 보여요. 설명·이름·위치·이동 순서를 바꿨다면 아래 파일을 받아 index.html 옆에 올리고, 음원과 이미지는 각 지역에 적힌 이름대로 <code>audio</code>·<code>images</code> 폴더에 올려 주세요.</p>
+        <button class="pbtn" id="exportBtn">regions.json 받기</button>
       </div>
-      <div class="gh">GitHub에 올릴 이름: <code id="mainGh"></code></div>
-      <p class="note" style="margin-top:8px">아래 막대에서 재생되는 긴 음원이에요. 진행 중엔 지역을 눌러도 이 음원만 흘러나오고, 비행기가 이동하며 설명이 열려요. 스페이스바로 재생/일시정지할 수 있어요.</p>
-    </div>
-    <div class="sec"><span id="cnt">지역</span><button class="pbtn primary" id="addRegion">+ 지역 추가</button></div>
-    <div id="list"></div>
-    <p class="note">여기서 넣은 음원은 이 컴퓨터의 브라우저에만 저장돼요. <span id="usage"></span></p>
-    <div class="box">
-      <h3>QR로 들어온 관객 화면에 반영하기</h3>
-      <p class="note" style="margin:0 0 10px">관객 휴대폰에는 GitHub에 올린 내용만 보여요. 설명·이름·위치를 바꿨다면 아래 파일을 받아 index.html 옆에 올리고, 음원과 이미지는 각 지역에 적힌 이름대로 <code>audio</code>·<code>images</code> 폴더에 올려 주세요.</p>
-      <button class="pbtn" id="exportBtn">regions.json 받기</button>
-    </div>
-    <div class="box">
-      <h3>GitHub 버전으로 전환하기</h3>
-      <p class="note" style="margin:0 0 10px">이 컴퓨터에 저장된 설정·음원·이미지가 GitHub 파일보다 우선해요. 모든 파일을 GitHub에 올린 뒤 이 버튼을 누르면, 이 컴퓨터도 관객과 똑같이 GitHub 내용을 쓰게 돼요.</p>
-      <button class="pbtn danger" id="wipeBtn">이 컴퓨터에 저장된 내용 지우기</button>
-    </div>
+      <div class="box">
+        <h3>GitHub 버전으로 전환하기</h3>
+        <p class="note" style="margin:0 0 10px">이 컴퓨터에 저장된 설정·음원·이미지가 GitHub 파일보다 우선해요. 모든 파일을 GitHub에 올린 뒤 이 버튼을 누르면, 이 컴퓨터도 관객과 똑같이 GitHub 내용을 쓰게 돼요.</p>
+        <button class="pbtn danger" id="wipeBtn">이 컴퓨터에 저장된 내용 지우기</button>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-regions">
+      <div class="sec" style="margin-top:4px"><span id="cnt">지역</span><button class="pbtn primary" id="addRegion">+ 지역 추가</button></div>
+      <div id="list"></div>
+    </section>
+
+    <section class="tab" id="tab-route" hidden>
+      <div class="sec" style="margin-top:4px"><span>전체 음원 (진행용 믹스)</span></div>
+      <div class="rg">
+        <div class="file"><span class="fn" id="mainFn"></span>
+          <label class="pbtn">음원 선택<input type="file" accept="audio/*" hidden id="mainFile"></label>
+          <button class="pbtn" id="mainClear">지우기</button>
+        </div>
+        <div class="gh">GitHub에 올릴 이름: <code id="mainGh"></code></div>
+      </div>
+      <label class="fld" style="margin-top:14px"><span>출발 지역 (처음 화면, 0:00의 비행기 위치)</span>
+        <select id="fStart" style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px"></select></label>
+      <label class="chk"><input type="checkbox" id="fAuto"> 음원 시간에 맞춰 비행기 자동 이동</label>
+      <div class="sec"><span id="routeCnt">이동</span><button class="pbtn primary" id="addMove">+ 이동 추가</button></div>
+      <div id="route"></div>
+      <p class="note">음원을 틀어 놓고 원하는 순간에 "+ 이동 추가"를 누르면 그 시각이 들어가요. 같은 지역을 여러 번 넣어도 되고, 시간순으로 자동 정렬돼요. 비행에 1.5~4초가 걸리니 도착 시점에 맞추려면 조금 일찍 잡아 주세요. 스페이스바로 재생/일시정지할 수 있어요.</p>
+    </section>
   </div>
 </aside>
 
@@ -216,6 +253,8 @@ const DEFAULTS = {
   subtitle: "지구본을 돌려 지역을 누르면 그곳의 음악이 흘러나옵니다",
   loop: false,
   autoRotate: true,
+  autoFly: true,
+  route: [],
   startId: "korea",
   koreaAdded: true,
   regions: [
@@ -275,6 +314,10 @@ function saveState(){ if (VIEWER) return; clearTimeout(saveTimer); saveTimer = s
 
 /* 예전에 저장된 설정에도 대한민국을 한 번 추가해 줘요 (직접 지운 뒤에는 다시 넣지 않아요) */
 function migrate(st){
+  if (!Array.isArray(st.route)){
+    st.route = (st.regions || []).filter(r=> isFinite(r.cue)).map((r,k)=> ({ id: "m" + k + r.id, time: r.cue, to: r.id }));
+  }
+  (st.regions || []).forEach(r=> delete r.cue);
   if (!st.koreaAdded){
     if (!st.regions.some(r=> r.id === "korea")) st.regions.push({ ...DEFAULTS.regions.find(r=> r.id === "korea") });
     st.koreaAdded = true;
@@ -579,6 +622,99 @@ $("mainClear").onclick = async ()=>{
   loadMaster(); renderMainAdmin(); updateUsage(); renderMaster();
 };
 
+/* ---------- 음원 시간에 맞춘 자동 비행 ---------- */
+function parseTime(str){
+  const t = String(str).trim(); if (!t) return null;
+  if (!/^\d+(:\d{1,2}){0,2}$/.test(t)) return null;
+  return t.split(":").map(Number).reduce((a, n)=> a*60 + n, 0);
+}
+const routeSorted = ()=> (state.route || []).filter(m=> isFinite(m.time) && state.regions.some(r=> r.id === m.to)).sort((a,b)=> a.time - b.time);
+function activeMove(time){ let hit = null; for (const m of routeSorted()){ if (m.time <= time + .25) hit = m; else break; } return hit; }
+let cueId = undefined;   // 지금 음원 위치에 해당하는 이동
+function cueSync(fly){
+  if (VIEWER) return;
+  const hit = activeMove(master.currentTime || 0), id = hit ? hit.id : null;
+  markNow(id);
+  if (id === cueId) return;
+  cueId = id;
+  if (!fly || state.autoFly === false) return;
+  if (hit) onPin(hit.to);
+  else {
+    const st = startRegion();   // 첫 이동보다 앞으로 되감으면 출발 지역으로 돌아가요
+    if (st && lastStop && lastStop.id !== st.id){ hideInfo(); flyTo(st); }
+  }
+}
+function renderCues(){
+  const box = $("mCues"); box.innerHTML = "";
+  const d = master.duration; if (!isFinite(d) || d <= 0) return;
+  routeSorted().forEach(m=>{
+    if (m.time > d) return;
+    const r = state.regions.find(x=> x.id === m.to);
+    const i = document.createElement("i");
+    i.style.left = (m.time / d * 100) + "%"; i.style.setProperty("--c", r.color); i.title = `${fmtS(m.time)} → ${r.name}`;
+    box.appendChild(i);
+  });
+}
+function markNow(id){ document.querySelectorAll("#route .mv[data-id]").forEach(el=> el.classList.toggle("now", el.dataset.id === id)); }
+
+/* 이동 탭 */
+function renderRoute(){
+  const list = $("route"); list.innerHTML = "";
+  const moves = routeSorted();
+  $("routeCnt").textContent = `이동 ${moves.length}번`;
+  const st = startRegion();
+  const first = document.createElement("div"); first.className = "mv first";
+  first.innerHTML = `<span class="no">0</span><input value="00:00" disabled aria-label="출발 시각"><span class="sw"></span><select disabled><option></option></select>`;
+  if (st){ first.querySelector(".sw").style.setProperty("--c", st.color); first.querySelector("option").textContent = `${st.name}에서 출발`; }
+  list.appendChild(first);
+  moves.forEach((m, k)=>{
+    const r = state.regions.find(x=> x.id === m.to);
+    const el = document.createElement("div"); el.className = "mv"; el.dataset.id = m.id;
+    el.innerHTML = `<span class="no">${k+1}</span><input type="text" inputmode="numeric" aria-label="이동 시각"><span class="sw"></span><select aria-label="도착 지역"></select>
+      <button class="ib" data-a="now" title="지금 음원 시간으로">⏱</button><button class="ib" data-a="go" title="이 이동 미리 보기">✈</button><button class="ib" data-a="del" title="삭제">✕</button>`;
+    const tin = el.querySelector("input"), sel = el.querySelector("select");
+    el.querySelector(".sw").style.setProperty("--c", r.color);
+    tin.value = fmtS(m.time);
+    state.regions.forEach(x=>{ const o = document.createElement("option"); o.value = x.id; o.textContent = x.name; sel.appendChild(o); });
+    sel.value = m.to;
+    tin.onchange = ()=>{
+      const v = parseTime(tin.value);
+      if (v == null){ toast("시간은 1:25 또는 85처럼 적어 주세요"); tin.value = fmtS(m.time); return; }
+      m.time = v; routeChanged();
+    };
+    sel.onchange = ()=>{ m.to = sel.value; routeChanged(); };
+    el.querySelector('[data-a="now"]').onclick = ()=>{ m.time = Math.round(master.currentTime || 0); routeChanged(); };
+    el.querySelector('[data-a="go"]').onclick = ()=>{ closePanel(); onPin(m.to); };
+    el.querySelector('[data-a="del"]').onclick = ()=>{ state.route = state.route.filter(x=> x.id !== m.id); routeChanged(); };
+    list.appendChild(el);
+  });
+  markNow(cueId);
+}
+function routeChanged(){ saveState(); renderRoute(); renderCues(); cueId = undefined; cueSync(false); }
+$("addMove").onclick = ()=>{
+  state.route = state.route || [];
+  const t = Math.round(master.currentTime || 0);
+  const before = activeMove(t), from = before ? before.to : state.startId;
+  const idx = state.regions.findIndex(r=> r.id === from);
+  const next = state.regions[(idx + 1) % state.regions.length] || state.regions[0];
+  if (!next) return;
+  state.route.push({ id: "m" + Date.now().toString(36), time: t, to: next.id });
+  routeChanged();
+};
+$("fAuto").onchange = e=>{ state.autoFly = e.target.checked; saveState(); renderAuto(); cueId = undefined; if (state.autoFly && !master.paused) cueSync(true); };
+
+function renderAuto(){
+  const on = state.autoFly !== false;
+  $("mAuto").setAttribute("aria-pressed", on);
+  $("mAuto").textContent = on ? "✈ 자동" : "✈ 수동";
+}
+$("mAuto").onclick = ()=>{ state.autoFly = state.autoFly === false; saveState(); renderAuto(); $("fAuto").checked = state.autoFly !== false; cueId = undefined; if (state.autoFly && !master.paused) cueSync(true); };
+master.addEventListener("timeupdate", ()=> cueSync(!master.paused));
+master.addEventListener("seeked", ()=> cueSync(true));
+master.addEventListener("play", ()=> cueSync(true));
+master.addEventListener("durationchange", renderCues);
+master.addEventListener("loadedmetadata", renderCues);
+
 let toastTimer;
 function toast(t){
   const el = $("toast"); el.textContent = t; el.classList.add("show");
@@ -599,16 +735,21 @@ function openPanel(){
   if (VIEWER) return;
   $("fTitle").value = state.title; $("fSub").value = state.subtitle;
   $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
-  renderList(); renderMainAdmin(); renderStartSelect(); $("panel").classList.add("open"); updateUsage();
+  renderList(); renderMainAdmin(); renderStartSelect(); renderRoute(); $("fAuto").checked = state.autoFly !== false; $("panel").classList.add("open"); updateUsage();
 }
 function closePanel(){ $("panel").classList.remove("open"); }
+document.querySelectorAll(".tabs button").forEach(b=> b.onclick = ()=> showTab(b.dataset.tab));
+function showTab(name){
+  document.querySelectorAll(".tabs button").forEach(b=> b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll(".tab").forEach(t=> t.hidden = t.id !== "tab-" + name);
+}
 $("adminBtn").onclick = openPanel;
 $("closePanel").onclick = closePanel;
 $("fTitle").oninput = e=>{ state.title = e.target.value; renderHeader(); saveState(); };
 $("fSub").oninput = e=>{ state.subtitle = e.target.value; renderHeader(); saveState(); };
 $("fLoop").onchange = e=>{ state.loop = e.target.checked; Object.values(players).forEach(a=> a.loop = state.loop); saveState(); };
 $("fStart").onchange = e=>{
-  state.startId = e.target.value; saveState();
+  state.startId = e.target.value; saveState(); renderRoute();
   const st = startRegion(); lastStop = st;
   if (st) globe.pointOfView({ lat: st.lat, lng: st.lon }, 1200);
 };
@@ -685,9 +826,9 @@ function renderList(){
     };
     const setFn = ()=>{ fn.textContent = fileNames[r.id] ? "✓ " + fileNames[r.id] : "이 컴퓨터에 음원 없음"; fn.classList.toggle("ok", !!fileNames[r.id]); };
     setFn();
-    color.onchange = ()=>{ r.color = color.value; buildPins(); saveState(); };
+    color.onchange = ()=>{ r.color = color.value; buildPins(); saveState(); renderCues(); renderRoute(); };
     name.oninput = ()=>{ r.name = name.value || "이름 없음"; const l = pinEls[r.id]?.querySelector(".lbl"); if (l) l.textContent = r.name; saveState(); };
-    name.onchange = ()=> buildPins();
+    name.onchange = ()=>{ buildPins(); renderRoute(); renderStartSelect(); };
     label.onchange = ()=>{ r.label = label.value; buildPins(); saveState(); };
     el.querySelector('.file input[type=file]').onchange = async e=>{
       const f = e.target.files[0]; if (!f) return;
@@ -713,11 +854,12 @@ function renderList(){
       if (del.dataset.armed !== "1"){ del.dataset.armed = "1"; del.textContent = "한 번 더 누르면 삭제"; return; }
       if (current === r.id) stopAll();
       state.regions = state.regions.filter(x=> x.id !== r.id);
+      state.route = (state.route || []).filter(m=> m.to !== r.id); renderRoute();
       await store.del("audio", r.id).catch(()=>{});
       await store.del("images", r.id).catch(()=>{});
       if (shown === r.id) hideInfo();
       if (lastStop && lastStop.id === r.id) lastStop = startRegion();
-      dropUrl(r.id); buildPins(); renderList(); saveState(); updateUsage();
+      dropUrl(r.id); buildPins(); renderList(); saveState(); updateUsage(); renderCues();
     };
     list.appendChild(el);
   });
@@ -780,7 +922,7 @@ async function updateUsage(){
   // 1) GitHub에 올린 regions.json이 있으면 기본값으로 사용
   try {
     const res = await fetch("regions.json", { cache:"no-store" });
-    if (res.ok){ const j = await res.json(); if (Array.isArray(j.regions)) state = migrate({ ...DEFAULTS, ...j, koreaAdded: j.koreaAdded }); }
+    if (res.ok){ const j = await res.json(); if (Array.isArray(j.regions)) state = migrate({ ...DEFAULTS, ...j, koreaAdded: j.koreaAdded, route: j.route }); }
   } catch(e){}
   // 2) 진행자 컴퓨터라면 이 브라우저에 저장된 설정과 음원을 우선 사용
   if (!VIEWER){
@@ -799,7 +941,7 @@ async function updateUsage(){
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
     } catch(e){ toast("이 브라우저에서는 음원을 저장할 수 없어요. 시크릿 창이 아닌 일반 창으로 열어 주세요."); }
   }
-  renderHeader(); renderQR(); loadMaster(); renderMaster();
+  renderHeader(); renderQR(); loadMaster(); renderMaster(); renderAuto();
   if (typeof Globe !== "function"){ $("loading").textContent = "지구본을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요."; return; }
   initGlobe(); buildPins();
 })();
