@@ -52,9 +52,9 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 body.placing #globe{cursor:crosshair}
 body.placing .pin{pointer-events:none}
 
-.hint{position:absolute;left:28px;bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);z-index:3;pointer-events:none}
+.hint{position:absolute;left:28px;bottom:calc(34px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);z-index:3;pointer-events:none}
 
-#qr{position:absolute;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));background:#fff;color:#0B0E22;border-radius:16px;padding:12px;z-index:3;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#qr{position:absolute;right:24px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#fff;color:#0B0E22;border-radius:16px;padding:12px;z-index:3;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
 #qrbox img,#qrbox canvas{width:132px!important;height:132px!important;display:block}
 #qr p{margin:8px 0 0;font-weight:800;font-size:13px}
 
@@ -78,6 +78,18 @@ body.placing .pin{pointer-events:none}
 #info .play button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;flex:none}
 #info .play button:hover{background:var(--card2)}
 body.reading .hint{display:none}
+#plane{position:absolute;left:0;top:0;width:0;height:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .25s}
+#plane.show{opacity:1}
+#plane svg{position:absolute;left:-17px;top:-17px;width:34px;height:34px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
+#master{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(620px,calc(100% - 420px));min-width:320px;
+  background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px 16px;display:flex;align-items:center;gap:12px;z-index:4;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#master button{width:40px;height:40px;border-radius:50%;border:0;background:var(--ink);color:#0A0E22;font-size:15px;flex:none;display:grid;place-items:center}
+#master .tm{font-variant-numeric:tabular-nums;font-weight:800;font-size:18px;letter-spacing:.02em;flex:none}
+#master .tot{font-variant-numeric:tabular-nums;color:var(--mute);font-size:14px;flex:none}
+#master input[type=range]{flex:1;min-width:60px;accent-color:#7EC8FF;height:4px}
+body.viewer #master{display:none}
+@media (max-width:900px){ #master{width:calc(100% - 40px);min-width:0} .hint{display:none} }
 @media (max-width:720px){
   #info{left:12px;right:12px;width:auto;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-height:58%;transform:translateY(20px)}
   #info .pic{aspect-ratio:16/8}
@@ -144,6 +156,13 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
 <button id="adminBtn">관리</button>
 <div class="hint">드래그해서 돌리기 · 휠로 확대/축소</div>
 <div id="qr"><div id="qrbox"></div><p>QR로 함께 듣기</p></div>
+<div id="plane" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#fff" d="M21 12c0-.6-.4-1-1-1h-5.6L9.6 3.4c-.2-.3-.5-.4-.8-.4H7.5l2.6 8H5L3.4 9H2l1 3-1 3h1.4L5 13h5.1l-2.6 8h1.3c.3 0 .6-.1.8-.4l4.8-7.6H20c.6 0 1-.4 1-1z"/></svg></div>
+<div id="master" aria-label="전체 음원">
+  <button id="mPlay" aria-label="재생">▶</button>
+  <span class="tm" id="mTime">00:00</span>
+  <input type="range" id="mSeek" min="0" max="0" step="1" value="0" aria-label="재생 위치">
+  <span class="tot" id="mTotal">00:00</span>
+</div>
 
 <section id="info" aria-live="polite">
   <button class="x" id="closeInfo" aria-label="닫기">×</button>
@@ -163,6 +182,15 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
     <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
     <label class="chk"><input type="checkbox" id="fLoop"> 곡이 끝나면 반복 재생</label>
     <label class="chk"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
+    <div class="sec"><span>전체 음원 (진행용 믹스)</span></div>
+    <div class="rg">
+      <div class="file"><span class="fn" id="mainFn"></span>
+        <label class="pbtn">음원 선택<input type="file" accept="audio/*" hidden id="mainFile"></label>
+        <button class="pbtn" id="mainClear">지우기</button>
+      </div>
+      <div class="gh">GitHub에 올릴 이름: <code id="mainGh"></code></div>
+      <p class="note" style="margin-top:8px">아래 막대에서 재생되는 긴 음원이에요. 진행 중엔 지역을 눌러도 이 음원만 흘러나오고, 비행기가 이동하며 설명이 열려요. 스페이스바로 재생/일시정지할 수 있어요.</p>
+    </div>
     <div class="sec"><span id="cnt">지역</span><button class="pbtn primary" id="addRegion">+ 지역 추가</button></div>
     <div id="list"></div>
     <p class="note">여기서 넣은 음원은 이 컴퓨터의 브라우저에만 저장돼요. <span id="usage"></span></p>
@@ -253,10 +281,12 @@ function initGlobe(){
     .htmlTransitionDuration(0)
     .htmlElement(r => pinEl(r))
     .onGlobeClick(({lat, lng}) => { if (placing) placeAt(lat, lng); })
-    .onGlobeReady(()=> $("loading").remove());
+    .onGlobeReady(()=> $("loading").remove())
+    .pathsData([]).pathPoints("pts").pathPointLat(p=>p[0]).pathPointLng(p=>p[1]).pathPointAlt(p=>p[2])
+    .pathColor(()=> ["rgba(255,255,255,0.25)", "rgba(255,255,255,0.95)"]).pathStroke(null).pathResolution(1);
   const c = globe.controls();
   c.autoRotateSpeed = .35; c.enableDamping = true; c.minDistance = 130; c.maxDistance = 600;
-  c.addEventListener("start", ()=>{ c.autoRotate = false; clearTimeout(idleTimer); });
+  c.addEventListener("start", ()=>{ c.autoRotate = false; clearTimeout(idleTimer); following = false; });
   c.addEventListener("end", scheduleSpin);
   globe.pointOfView({ lat: 25, lng: 20, altitude: 2.3 });
   fit(); addEventListener("resize", fit);
@@ -267,14 +297,63 @@ function scheduleSpin(){
   clearTimeout(idleTimer);
   idleTimer = setTimeout(()=>{
     const c = globe.controls();
-    c.autoRotate = state.autoRotate !== false && !current && !placing && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    c.autoRotate = state.autoRotate !== false && !current && !placing && !flight && (VIEWER || master.paused) && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   }, 5000);
 }
-function focusOn(r){
-  const c = globe.controls(); c.autoRotate = false; clearTimeout(idleTimer);
-  const alt = Math.min(globe.pointOfView().altitude, 2);
-  globe.pointOfView({ lat: r.lat, lng: r.lon, altitude: alt }, 1200);
+/* ---------- 비행기 이동 ---------- */
+const rad = d=> d*Math.PI/180, deg = r=> r*180/Math.PI;
+function toVec(lat, lng){ const a = rad(lat), b = rad(lng); return [Math.cos(a)*Math.cos(b), Math.cos(a)*Math.sin(b), Math.sin(a)]; }
+function toLL(v){ return [deg(Math.asin(Math.max(-1, Math.min(1, v[2])))), deg(Math.atan2(v[1], v[0]))]; }
+function slerp(p, q, t, w){
+  const d = Math.acos(Math.max(-1, Math.min(1, p[0]*q[0]+p[1]*q[1]+p[2]*q[2])));
+  if (d < 1e-6) return p;
+  const a = Math.sin((1-t)*d)/Math.sin(d), b = Math.sin(t*d)/Math.sin(d);
+  return [a*p[0]+b*q[0], a*p[1]+b*q[1], a*p[2]+b*q[2]];
 }
+let flight = null, lastStop = null, following = false;
+function flyTo(r, onArrive){
+  const c = globe.controls(); c.autoRotate = false; clearTimeout(idleTimer);
+  const pov = globe.pointOfView();
+  const from = lastStop ? { lat:lastStop.lat, lng:lastStop.lon } : { lat:pov.lat, lng:pov.lng };
+  const P = toVec(from.lat, from.lng), Q = toVec(r.lat, r.lon);
+  const ang = Math.acos(Math.max(-1, Math.min(1, P[0]*Q[0]+P[1]*Q[1]+P[2]*Q[2])));
+  lastStop = r;
+  if (ang < .02){ globe.pointOfView({ lat:r.lat, lng:r.lon }, 800); onArrive && onArrive(); return; }
+  const dur = 1400 + ang * 900, peak = Math.min(.32, .05 + ang/Math.PI*.45);
+  const baseAlt = Math.min(pov.altitude, 2.2);
+  const pts = [];
+  for (let k=0; k<=60; k++){ const t = k/60, ll = toLL(slerp(P, Q, t)); pts.push([ll[0], ll[1], .01 + peak*Math.sin(Math.PI*t)]); }
+  globe.pathTransitionDuration(dur).pathsData([{ pts }]);
+  flight = { P, Q, peak, dur, t0: performance.now(), baseAlt, ang, onArrive };
+  following = true;
+  $("plane").classList.add("show");
+}
+function flightFrame(now){
+  requestAnimationFrame(flightFrame);
+  if (!flight) return;
+  const f = flight, raw = Math.min(1, (now - f.t0)/f.dur);
+  const t = raw < .5 ? 2*raw*raw : 1 - Math.pow(-2*raw+2, 2)/2;   // 부드럽게 출발·도착
+  const ll = toLL(slerp(f.P, f.Q, t)), alt = .01 + f.peak*Math.sin(Math.PI*t);
+  const ll2 = toLL(slerp(f.P, f.Q, Math.min(1, t + .01))), alt2 = .01 + f.peak*Math.sin(Math.PI*Math.min(1, t+.01));
+  if (following){
+    globe.pointOfView({ lat: ll[0], lng: ll[1], altitude: f.baseAlt + .5*Math.sin(Math.PI*t)*(f.ang/Math.PI) }, 0);
+  }
+  const a = globe.getScreenCoords(ll[0], ll[1], alt), b = globe.getScreenCoords(ll2[0], ll2[1], alt2);
+  const pov = globe.pointOfView(), cv = toVec(pov.lat, pov.lng), pv = toVec(ll[0], ll[1]);
+  const visible = (cv[0]*pv[0]+cv[1]*pv[1]+cv[2]*pv[2]) * (1+alt) > 1/(1+pov.altitude);
+  const heading = raw >= 1 ? (flight.heading || 0) : deg(Math.atan2(b.y - a.y, b.x - a.x));
+  flight.heading = heading;
+  const el = $("plane");
+  el.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px) rotate(${heading.toFixed(1)}deg) scale(${(1 + alt*1.2).toFixed(3)})`;
+  el.style.visibility = visible ? "visible" : "hidden";
+  if (raw >= 1){
+    const done = f.onArrive; flight = null; following = false;
+    setTimeout(()=> $("plane").classList.remove("show"), 900);
+    setTimeout(()=>{ if (!flight) globe.pathsData([]); }, 4000);
+    done && done();
+  }
+}
+requestAnimationFrame(flightFrame);
 
 /* ---------- 핀 ---------- */
 const pinEls = {};
@@ -286,12 +365,30 @@ function pinEl(r){
   b.innerHTML = `<span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span><span class="lbl"></span>`;
   b.querySelector(".lbl").textContent = r.name;
   b.addEventListener("pointerdown", e=> e.stopPropagation());
-  b.onclick = e=>{ e.stopPropagation(); toggle(r.id); };
+  b.onclick = e=>{ e.stopPropagation(); onPin(r.id); };
   if (r.id === current) b.classList.add("on");
   pinEls[r.id] = b;
   return b;
 }
 function buildPins(){ if (globe) globe.htmlElementsData(state.regions.map(r=>({...r}))); }
+
+/* ---------- 핀을 눌렀을 때 ----------
+   진행자: 전체 음원은 그대로 두고 비행기 이동 + 설명
+   관객(QR): 비행기 이동 + 그 지역 음원 재생 + 설명 */
+function onPin(id){
+  const r = state.regions.find(x=>x.id===id); if (!r) return;
+  if (VIEWER){
+    if (current === id){ stopAll(); return; }
+    toggle(id, true);
+    flyTo(r, ()=> showInfo(r));
+  } else {
+    if (current) stopAll();
+    Object.values(pinEls).forEach(p=> p.classList.remove("on"));
+    pinEls[id]?.classList.add("on");
+    hideInfo();
+    flyTo(r, ()=>{ showInfo(r); setPlayUI(false, true); });
+  }
+}
 
 /* ---------- 재생 ---------- */
 const players = {};
@@ -324,19 +421,20 @@ function stopOne(id){
   if (a) fadeTo(a, 0, FADE, ()=>{ a.pause(); a.currentTime = 0; });
 }
 let shown = null;
-async function toggle(id){
+const missing = new Set();
+async function toggle(id, deferInfo){
   const r = state.regions.find(x=>x.id===id); if (!r) return;
   if (current === id){ stopAll(); return; }
   if (current) stopOne(current);
   current = id;
-  focusOn(r); showInfo(r);
+  if (!deferInfo){ showInfo(r); globe.pointOfView({ lat:r.lat, lng:r.lon }, 1000); }
   const a = player(id);
   pinEls[id]?.classList.add("on");
   a.volume = 0; a.currentTime = 0;
-  try { await a.play(); fadeTo(a, 1, FADE); setPlayUI(true); }
+  try { await a.play(); missing.delete(id); fadeTo(a, 1, FADE); setPlayUI(true); if (!VIEWER && !master.paused) toast("전체 음원과 함께 재생 중이에요"); }
   catch(e){
     if (current !== id) return;
-    pinEls[id]?.classList.remove("on"); current = null; setPlayUI(false, true);
+    missing.add(id); pinEls[id]?.classList.remove("on"); current = null; setPlayUI(false, true);
     if (!VIEWER) toast(`‘${r.name}’ 음원이 없어요. 관리에서 넣어 주세요.`);
   }
 }
@@ -345,6 +443,7 @@ function endCurrent(){ if (current) pinEls[current]?.classList.remove("on"); cur
 function imgSrc(r){ return imgUrls[r.id] || r.img || ""; }
 function showInfo(r){
   shown = r.id;
+  setPlayUI(!!(current === r.id && players[r.id] && !players[r.id].paused), (!VIEWER && current !== r.id) || missing.has(r.id));
   const box = $("info"), pic = box.querySelector(".pic");
   box.style.setProperty("--c", r.color);
   box.querySelector(".nm").textContent = r.name;
@@ -358,7 +457,7 @@ function showInfo(r){
   box.querySelector(".bar i").style.width = "0%";
   box.classList.add("show"); document.body.classList.add("reading");
 }
-function hideInfo(){ shown = null; $("info").classList.remove("show"); document.body.classList.remove("reading"); }
+function hideInfo(){ if (!VIEWER) Object.values(pinEls).forEach(p=> p.classList.remove("on")); shown = null; $("info").classList.remove("show"); document.body.classList.remove("reading"); }
 function setPlayUI(playing, missing){
   const box = $("info");
   box.querySelector(".play").style.display = (missing && !playing) ? "none" : "";
@@ -373,10 +472,74 @@ setInterval(()=>{
   $("info").querySelector(".time").textContent = `${fmt(a.currentTime)} / ${fmt(a.duration)}`;
 }, 250);
 $("pauseBtn").onclick = ()=>{
-  if (!current){ if (shown) toggle(shown); return; }
+  if (!current){ if (shown) toggle(shown, true); return; }
   const a = players[current];
   if (a.paused){ a.play(); pinEls[current]?.classList.add("on"); $("pauseBtn").textContent = "일시정지"; }
   else { a.pause(); pinEls[current]?.classList.remove("on"); $("pauseBtn").textContent = "계속"; }
+};
+
+/* ---------- 전체 음원 (진행자 화면 아래 막대) ---------- */
+const master = new Audio(); master.preload = "auto";
+const MAIN = "__main__";
+const mainPath = ()=> state.mainAudio || "audio/main.mp3";
+function fmtS(s){
+  if (!isFinite(s) || s < 0) s = 0; s = Math.floor(s);
+  const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60, p = n=> String(n).padStart(2,"0");
+  return h ? `${h}:${p(m)}:${p(sec)}` : `${p(m)}:${p(sec)}`;
+}
+function loadMaster(){
+  if (VIEWER) return;
+  const want = new URL(urls[MAIN] || mainPath(), location.href).href;
+  if (master.src !== want){ master.src = want; master.load(); }
+}
+let seeking = false;
+function renderMaster(){
+  $("mTime").textContent = fmtS(master.currentTime);
+  $("mTotal").textContent = fmtS(master.duration);
+  if (!seeking){ $("mSeek").max = Math.floor(master.duration || 0); $("mSeek").value = Math.floor(master.currentTime); }
+  $("mPlay").textContent = master.paused ? "▶" : "❚❚";
+  $("mPlay").setAttribute("aria-label", master.paused ? "재생" : "일시정지");
+}
+["timeupdate","durationchange","play","pause","loadedmetadata","ended"].forEach(ev=> master.addEventListener(ev, renderMaster));
+setInterval(()=>{ if (!master.paused) renderMaster(); }, 200);
+async function toggleMaster(){
+  if (master.paused){
+    try { await master.play(); globe && (globe.controls().autoRotate = false); }
+    catch(e){ toast("전체 음원이 없어요. 관리 → 전체 음원에서 넣어 주세요."); }
+  } else { master.pause(); scheduleSpin(); }
+}
+$("mPlay").onclick = toggleMaster;
+$("mSeek").addEventListener("input", e=>{ seeking = true; $("mTime").textContent = fmtS(+e.target.value); });
+$("mSeek").addEventListener("change", e=>{ master.currentTime = +e.target.value; seeking = false; renderMaster(); });
+document.addEventListener("keydown", e=>{
+  if (VIEWER || e.code !== "Space") return;
+  if (/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement?.tagName || "") && document.activeElement.type !== "range") return;
+  e.preventDefault(); toggleMaster();
+});
+function renderMainAdmin(){
+  $("mainFn").textContent = fileNames[MAIN] ? "✓ " + fileNames[MAIN] : "이 컴퓨터에 전체 음원 없음";
+  $("mainFn").classList.toggle("ok", !!fileNames[MAIN]);
+  $("mainGh").textContent = mainPath();
+}
+$("mainFile").onchange = async e=>{
+  const f = e.target.files[0]; if (!f) return;
+  $("mainFn").textContent = "저장하는 중…";
+  try {
+    await store.put("audio", MAIN, { blob:f, name:f.name });
+    const wasPlaying = !master.paused, t = master.currentTime;
+    setUrl(MAIN, f, f.name);
+    const ext = (f.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g,"") || "mp3";
+    state.mainAudio = `audio/main.${ext}`; saveState();
+    loadMaster(); if (wasPlaying){ master.currentTime = 0; master.play().catch(()=>{}); }
+    renderMainAdmin(); updateUsage();
+  } catch(err){ $("mainFn").textContent = "저장하지 못했어요 (용량 부족일 수 있어요)"; }
+  e.target.value = "";
+};
+$("mainClear").onclick = async ()=>{
+  master.pause();
+  await store.del("audio", MAIN).catch(()=>{});
+  if (urls[MAIN]) URL.revokeObjectURL(urls[MAIN]); delete urls[MAIN]; delete fileNames[MAIN];
+  loadMaster(); renderMainAdmin(); updateUsage(); renderMaster();
 };
 
 let toastTimer;
@@ -399,7 +562,7 @@ function openPanel(){
   if (VIEWER) return;
   $("fTitle").value = state.title; $("fSub").value = state.subtitle;
   $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
-  renderList(); $("panel").classList.add("open"); updateUsage();
+  renderList(); renderMainAdmin(); $("panel").classList.add("open"); updateUsage();
 }
 function closePanel(){ $("panel").classList.remove("open"); }
 $("adminBtn").onclick = openPanel;
@@ -588,7 +751,7 @@ async function updateUsage(){
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
     } catch(e){ toast("이 브라우저에서는 음원을 저장할 수 없어요. 시크릿 창이 아닌 일반 창으로 열어 주세요."); }
   }
-  renderHeader(); renderQR();
+  renderHeader(); renderQR(); loadMaster(); renderMaster();
   if (typeof Globe !== "function"){ $("loading").textContent = "지구본을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요."; return; }
   initGlobe(); buildPins();
 })();
