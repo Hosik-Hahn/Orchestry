@@ -7,64 +7,60 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
-  --sea:#141038; --sea2:#1D1850; --land:#3A3478; --edge:#4E479A; --ink:#F5F3FF; --mute:#B9B3E6;
-  --line:rgba(245,243,255,.14); --card:rgba(29,24,80,.86);
+  --space:#04060F; --ink:#F4F6FF; --mute:#AEB6D6; --line:rgba(244,246,255,.16);
+  --card:rgba(10,14,34,.72); --card2:rgba(26,32,70,.9);
   --font:"Gothic A1","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
   color-scheme:dark;
 }
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){ --sea:#EEF1FB; --sea2:#E2E7F7; --land:#C9CFEA; --edge:#AEB6DD; --ink:#1A1446; --mute:#5B5490; --line:rgba(26,20,70,.12); --card:rgba(255,255,255,.9); color-scheme:light; }
-}
-:root[data-theme="light"]{ --sea:#EEF1FB; --sea2:#E2E7F7; --land:#C9CFEA; --edge:#AEB6DD; --ink:#1A1446; --mute:#5B5490; --line:rgba(26,20,70,.12); --card:rgba(255,255,255,.9); color-scheme:light; }
+/* 우주 배경이라 밝은 모드에서도 어두운 색을 유지해요 */
+:root[data-theme="light"],:root[data-theme="dark"]{ --space:#04060F; }
 *,*::before,*::after{box-sizing:inherit}
 html,body{height:100%;margin:0}
-body{background:radial-gradient(ellipse at 50% 40%, var(--sea2), var(--sea) 70%);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
+body{background:var(--space);color:var(--ink);font-family:var(--font);overflow:hidden;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
-header{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;padding:22px 28px;pointer-events:none;z-index:3}
-header h1{margin:0;font-size:clamp(22px,3vw,38px);font-weight:800;letter-spacing:-.03em}
+#globe{position:absolute;inset:0}
+header{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;padding:22px 28px;pointer-events:none;z-index:3;
+  background:linear-gradient(to bottom, rgba(4,6,15,.75), transparent)}
+header h1{margin:0;font-size:clamp(22px,3vw,38px);font-weight:800;letter-spacing:-.03em;text-shadow:0 2px 20px rgba(0,0,0,.6)}
 header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 
-#stage{position:absolute;inset:0}
-#map{position:absolute;inset:0;width:100%;height:100%}
-#map{touch-action:none;cursor:grab}
-#map.dragging{cursor:grabbing}
-#map .land{fill:var(--land);stroke:var(--edge);stroke-width:.6}
-#map .grat{fill:none;stroke:var(--line);stroke-width:.6}
-#map .ocean{fill:url(#oceanG)}
-#map .shine{fill:url(#shineG);pointer-events:none}
-#map .glow{fill:none;stroke:var(--edge);stroke-opacity:.5;stroke-width:1.2;filter:drop-shadow(0 0 18px var(--edge))}
-.pin{transition:opacity .2s}
-.pin.back{opacity:0;pointer-events:none}
-
-.pin{position:absolute;left:0;top:0;width:0;height:0;border:0;background:none;padding:0;z-index:2}
+.pin{position:relative;width:0;height:0;border:0;background:none;padding:0;pointer-events:auto}
 .pin .dot{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--c);
-  box-shadow:0 0 0 3px rgba(20,16,56,.55),0 0 16px var(--c);transition:transform .25s}
+  box-shadow:0 0 0 3px rgba(4,6,15,.6),0 0 18px var(--c);transition:transform .25s}
 .pin .ring{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:2px solid var(--c);opacity:0;pointer-events:none}
-.pin .lbl{position:absolute;white-space:nowrap;font-weight:800;font-size:clamp(12px,1.25vw,16px);padding:4px 10px;border-radius:999px;
-  background:var(--card);border:1px solid var(--line);transition:background .25s,color .25s;top:-14px;left:16px}
+.pin .lbl{position:absolute;white-space:nowrap;font-weight:800;font-size:clamp(12px,1.2vw,15px);padding:4px 10px;border-radius:999px;
+  background:var(--card);border:1px solid var(--line);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .25s,color .25s;top:-14px;left:16px}
 .pin.left .lbl{left:auto;right:16px}
 .pin.below .lbl{left:50%;top:14px;transform:translateX(-50%)}
 .pin.above .lbl{left:50%;top:-44px;transform:translateX(-50%)}
 .pin:hover .dot,.pin:focus-visible .dot{transform:scale(1.35)}
 .pin.on .dot{transform:scale(1.5)}
-.pin.on .lbl{background:var(--c);color:#15102F;border-color:transparent}
+.pin.on .lbl{background:var(--c);color:#0B0E22;border-color:transparent}
 .pin.on .ring{animation:ripple 1.8s ease-out infinite}
 .pin.on .ring.r2{animation-delay:.6s}
 .pin.on .ring.r3{animation-delay:1.2s}
 @keyframes ripple{0%{transform:scale(1);opacity:.9}100%{transform:scale(5);opacity:0}}
+body.placing #globe{cursor:crosshair}
+body.placing .pin{pointer-events:none}
+
+.hint{position:absolute;left:28px;bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);z-index:3;pointer-events:none}
+
+#qr{position:absolute;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));background:#fff;color:#0B0E22;border-radius:16px;padding:12px;z-index:3;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#qrbox img,#qrbox canvas{width:132px!important;height:132px!important;display:block}
+#qr p{margin:8px 0 0;font-weight:800;font-size:13px}
 
 #now{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
-  width:min(520px,calc(100% - 32px));background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 16px 14px 20px;
-  display:flex;align-items:center;gap:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity .3s,transform .3s;z-index:4}
+  width:min(460px,calc(100% - 32px));background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 16px 14px 20px;
+  display:flex;align-items:center;gap:14px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity .3s,transform .3s;z-index:4}
 #now.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 #now .sw{width:14px;height:14px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 12px var(--c)}
 #now .info{flex:1;min-width:0}
@@ -73,31 +69,31 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 #now .bar i{display:block;height:100%;width:0;background:var(--c)}
 #now .time{font-size:12px;color:var(--mute);margin-top:5px;font-variant-numeric:tabular-nums}
 #now button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;flex:none}
-#now button:hover{background:var(--sea2)}
+#now button:hover{background:var(--card2)}
 
-#toast{position:absolute;left:50%;top:calc(90px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#FF5E5B;color:#15102F;font-weight:600;
-  padding:10px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;z-index:5}
+#toast{position:absolute;left:50%;top:calc(96px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#FFB400;color:#0B0E22;font-weight:600;
+  padding:10px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;z-index:7}
 #toast.show{opacity:1}
-@media (prefers-reduced-motion:reduce){.pin.on .ring{animation:none;opacity:.6;transform:scale(2)}}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--mute);z-index:1;pointer-events:none}
 
-#adminBtn{position:absolute;top:calc(22px + env(safe-area-inset-top,0px));right:24px;z-index:4;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px}
-#adminBtn:hover{background:var(--sea2)}
-#panel{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--sea);border-left:1px solid var(--line);z-index:6;
+#adminBtn{position:absolute;top:calc(22px + env(safe-area-inset-top,0px));right:24px;z-index:4;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px;backdrop-filter:blur(6px)}
+#adminBtn:hover{background:var(--card2)}
+#panel{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:#0A0E22;border-left:1px solid var(--line);z-index:6;
   transform:translateX(105%);transition:transform .3s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 #panel.open{transform:none}
 #panel .ph{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
 #panel .ph h2{margin:0;font-size:19px}
 #panel .pb{flex:1;overflow:auto;padding:16px 20px 30px}
 .pbtn{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px}
-.pbtn:hover{background:var(--sea2)}
-.pbtn.primary{background:var(--ink);color:var(--sea);border-color:var(--ink)}
-.pbtn.danger{color:#FF5E5B;border-color:rgba(255,94,91,.5)}
+.pbtn:hover{background:var(--card2)}
+.pbtn.primary{background:var(--ink);color:#0A0E22;border-color:var(--ink)}
+.pbtn.danger{color:#FF6B68;border-color:rgba(255,107,104,.5)}
 .fld{display:block;margin-bottom:12px}
 .fld span{display:block;font-size:12px;color:var(--mute);font-weight:600;margin-bottom:5px}
-.fld input,.fld select,.rg input[type=text],.rg select{width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:var(--sea2);color:var(--ink);font:inherit;font-size:14px}
-.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 18px}
+.fld input,.rg input[type=text],.rg select{width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 8px}
 .sec{font-size:13px;font-weight:800;color:var(--mute);margin:22px 0 10px;display:flex;justify-content:space-between;align-items:center}
-.rg{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--sea2)}
+.rg{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:#11163A}
 .rg .top{display:flex;gap:8px;align-items:center}
 .rg input[type=color]{width:34px;height:34px;border:0;border-radius:50%;padding:0;background:none;flex:none;cursor:pointer}
 .rg input[type=color]::-webkit-color-swatch-wrapper{padding:0}
@@ -107,24 +103,32 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 .rg .file{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px}
 .rg .file .fn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}
 .rg .file .fn.ok{color:var(--ink)}
+.rg .gh{font-size:12px;color:var(--mute);margin-top:6px}
+.rg .gh code{color:var(--ink)}
 .rg .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
-.hint{position:absolute;left:28px;bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);z-index:3;pointer-events:none}
-@media (max-width:720px){.hint{display:none}}
-.note{font-size:12.5px;color:var(--mute);line-height:1.6;margin:14px 0 0}
-body.placing #map{cursor:crosshair}
-body.placing .pin{pointer-events:none}
+.note{font-size:12.5px;color:var(--mute);line-height:1.65;margin:14px 0 0}
+.box{border:1px dashed var(--line);border-radius:14px;padding:14px;margin-top:22px}
+.box h3{margin:0 0 6px;font-size:14px}
+
+body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!important}
+@media (max-width:720px){
+  .hint{display:none}
+  #qr{display:none}
+  .pin .lbl{font-size:12px}
+}
+@media (prefers-reduced-motion:reduce){.pin.on .ring{animation:none;opacity:.6;transform:scale(2)}}
 </style>
 </head>
 <body>
+<div id="loading">지구본을 불러오는 중…</div>
+<div id="globe" aria-label="회전할 수 있는 3D 지구본"></div>
 <header>
   <h1 id="title"></h1>
   <p id="sub"></p>
 </header>
-<div id="stage">
-  <svg id="map" role="img" aria-label="세계 지도"></svg>
-</div>
 <button id="adminBtn">관리</button>
 <div class="hint">드래그해서 돌리기 · 휠로 확대/축소</div>
+<div id="qr"><div id="qrbox"></div><p>QR로 함께 듣기</p></div>
 
 <div id="now" aria-live="polite">
   <span class="sw"></span>
@@ -140,18 +144,23 @@ body.placing .pin{pointer-events:none}
     <label class="fld"><span>제목</span><input id="fTitle" maxlength="60"></label>
     <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
     <label class="chk"><input type="checkbox" id="fLoop"> 곡이 끝나면 반복 재생</label>
-    <label class="chk" style="margin-top:-10px"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
+    <label class="chk"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
     <div class="sec"><span id="cnt">지역</span><button class="pbtn primary" id="addRegion">+ 지역 추가</button></div>
     <div id="list"></div>
-    <p class="note">음원은 이 컴퓨터의 브라우저에만 저장돼요. 다른 컴퓨터나 다른 브라우저에서는 다시 넣어야 하고, 브라우저의 사이트 데이터를 지우면 함께 지워집니다. <span id="usage"></span></p>
+    <p class="note">여기서 넣은 음원은 이 컴퓨터의 브라우저에만 저장돼요. <span id="usage"></span></p>
+    <div class="box">
+      <h3>QR로 들어온 관객 화면에 반영하기</h3>
+      <p class="note" style="margin:0 0 10px">관객 휴대폰에는 GitHub에 올린 내용만 보여요. 지역 이름·위치를 바꿨다면 아래 파일을 받아 GitHub에 함께 올리고, 음원은 각 지역에 적힌 이름으로 <code>audio</code> 폴더에 올려 주세요.</p>
+      <button class="pbtn" id="exportBtn">regions.json 받기</button>
+    </div>
   </div>
 </aside>
 
 <script>
-/* ---------- 기본값 (처음 열 때만 쓰임, 이후엔 관리 화면에서 바꾼 내용이 저장돼요) ---------- */
+/* ---------- 기본값 (regions.json이 없을 때 쓰여요) ---------- */
 const DEFAULTS = {
   title: "세계의 소리",
-  subtitle: "지도 위 지역을 누르면 그곳의 음악이 흘러나옵니다",
+  subtitle: "지구본을 돌려 지역을 누르면 그곳의 음악이 흘러나옵니다",
   loop: false,
   autoRotate: true,
   regions: [
@@ -170,13 +179,18 @@ const DEFAULTS = {
 };
 const FADE = 0.8;
 const PALETTE = ["#FFB400","#5FD4F4","#FF8A3D","#3D9BFF","#FF5E5B","#8C8CFF","#2EC27E","#9BE15D","#FF8FC7","#F2E14C","#C86BFA","#00C2A8"];
+const TEX = "https://cdn.jsdelivr.net/npm/three-globe@2.45.2/example/img/";
+
+/* QR로 들어온 사람은 주소에 ?view 가 붙어 있어요 → 보기·듣기만 가능 */
+const VIEWER = new URLSearchParams(location.search).has("view");
+if (VIEWER) document.body.classList.add("viewer");
 
 const $ = id => document.getElementById(id);
 let state = structuredClone(DEFAULTS);
-const fileNames = {};       // id → 저장된 파일 이름
-const urls = {};            // id → 재생용 주소
+const fileNames = {}, urls = {};
+const repoFile = id => `audio/${id}.mp3`;
 
-/* ---------- 브라우저 저장소 (IndexedDB) ---------- */
+/* ---------- 브라우저 저장소 (진행자 컴퓨터 전용) ---------- */
 const store = {
   db: null,
   open(){
@@ -201,140 +215,74 @@ const store = {
   keys(n){ return this.req(n,"readonly",s=>s.getAllKeys()); }
 };
 let saveTimer;
-function saveState(){ clearTimeout(saveTimer); saveTimer = setTimeout(()=> store.put("kv","state",state).catch(()=> toast("설정을 저장하지 못했어요")), 250); }
+function saveState(){ if (VIEWER) return; clearTimeout(saveTimer); saveTimer = setTimeout(()=> store.put("kv","state",state).catch(()=> toast("설정을 저장하지 못했어요")), 250); }
 
 /* ---------- 3D 지구본 ---------- */
-const svg = d3.select("#map");
-const defs = svg.append("defs");
-const og = defs.append("radialGradient").attr("id","oceanG").attr("cx","38%").attr("cy","32%").attr("r","75%");
-og.append("stop").attr("offset","0%").attr("style","stop-color:var(--sea2)");
-og.append("stop").attr("offset","100%").attr("style","stop-color:var(--sea)");
-const sg = defs.append("radialGradient").attr("id","shineG").attr("cx","35%").attr("cy","28%").attr("r","80%");
-sg.append("stop").attr("offset","0%").attr("stop-color","#fff").attr("stop-opacity",.16);
-sg.append("stop").attr("offset","45%").attr("stop-color","#fff").attr("stop-opacity",0);
-sg.append("stop").attr("offset","100%").attr("stop-color","#000").attr("stop-opacity",.35);
-const glow = svg.append("path").attr("class","glow");
-const ocean = svg.append("path").attr("class","ocean");
-const grat = svg.append("path").attr("class","grat");
-const landG = svg.append("g");
-const shine = svg.append("path").attr("class","shine");
-let world = null, rot = [-20, -25, 0], zoom = 1;
-let projection = d3.geoOrthographic().clipAngle(90);
-const path = d3.geoPath(projection);
-const graticule = d3.geoGraticule10();
-
-async function loadWorld(){
-  try {
-    const topo = await (await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")).json();
-    world = topojson.feature(topo, topo.objects.countries);
-    landG.selectAll("path").data(world.features).join("path").attr("class","land");
-  } catch(e){ world = null; }
-  draw();
+let globe, idleTimer;
+function initGlobe(){
+  globe = Globe({ animateIn: true })($("globe"))
+    .globeImageUrl(TEX + "earth-blue-marble.jpg")
+    .bumpImageUrl(TEX + "earth-topology.png")
+    .backgroundImageUrl(TEX + "night-sky.png")
+    .showAtmosphere(true).atmosphereColor("#7EC8FF").atmosphereAltitude(.2)
+    .htmlElementsData([])
+    .htmlLat("lat").htmlLng("lon").htmlAltitude(.01)
+    .htmlTransitionDuration(0)
+    .htmlElement(r => pinEl(r))
+    .onGlobeClick(({lat, lng}) => { if (placing) placeAt(lat, lng); })
+    .onGlobeReady(()=> $("loading").remove());
+  const c = globe.controls();
+  c.autoRotateSpeed = .35; c.enableDamping = true; c.minDistance = 130; c.maxDistance = 600;
+  c.addEventListener("start", ()=>{ c.autoRotate = false; clearTimeout(idleTimer); });
+  c.addEventListener("end", scheduleSpin);
+  globe.pointOfView({ lat: 25, lng: 20, altitude: 2.3 });
+  fit(); addEventListener("resize", fit);
+  scheduleSpin();
 }
-function radius(){ return Math.min(innerWidth, innerHeight - 120) * .42 * zoom; }
-function draw(){
-  const W = innerWidth, H = innerHeight;
-  svg.attr("viewBox", `0 0 ${W} ${H}`);
-  projection.scale(radius()).translate([W/2, H/2 + 20]).rotate(rot);
-  const sphere = path({type:"Sphere"});
-  glow.attr("d", sphere); ocean.attr("d", sphere); shine.attr("d", sphere);
-  grat.attr("d", path(graticule));
-  landG.selectAll("path").attr("d", path);
-  placePins();
+function fit(){ globe.width(innerWidth).height(innerHeight); }
+function scheduleSpin(){
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(()=>{
+    const c = globe.controls();
+    c.autoRotate = state.autoRotate !== false && !current && !placing && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, 5000);
 }
-
-/* 드래그로 회전, 휠로 확대 */
-let dragging = false, dragMoved = false, lastInteract = 0, anim = null;
-{
-  let sx, sy, r0;
-  const el = $("map");
-  el.addEventListener("pointerdown", e=>{
-    dragging = true; dragMoved = false; sx = e.clientX; sy = e.clientY; r0 = rot.slice(); anim = null;
-    el.setPointerCapture(e.pointerId); el.classList.add("dragging");
-  });
-  el.addEventListener("pointermove", e=>{
-    if (!dragging) return;
-    const dx = e.clientX - sx, dy = e.clientY - sy;
-    if (Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true;
-    const k = 57.3 / projection.scale();
-    rot = [r0[0] + dx*k, Math.max(-85, Math.min(85, r0[1] - dy*k)), 0];
-    lastInteract = performance.now(); draw();
-  });
-  const up = e=>{
-    if (!dragging) return;
-    dragging = false; el.classList.remove("dragging"); lastInteract = performance.now();
-    if (!dragMoved && placing) placeAt(e.clientX, e.clientY);
-  };
-  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
-  el.addEventListener("wheel", e=>{
-    e.preventDefault();
-    zoom = Math.max(.6, Math.min(3.5, zoom * Math.exp(-e.deltaY * .0015)));
-    lastInteract = performance.now(); draw();
-  }, { passive:false });
-}
-/* 지역을 누르면 그 곳이 정면으로 오도록 부드럽게 회전 */
-function focusOn(lon, lat){
-  const from = rot.slice(), to = [-lon, Math.max(-60, Math.min(60, -lat)), 0];
-  while (to[0] - from[0] > 180) to[0] -= 360;
-  while (to[0] - from[0] < -180) to[0] += 360;
-  anim = { from, to, t0: performance.now(), dur: 1000 };
-}
-let lastFrame = 0;
-function loop(t){
-  requestAnimationFrame(loop);
-  const dt = Math.min(3, lastFrame ? (t - lastFrame)/16.7 : 1); lastFrame = t;
-  if (anim){
-    const k = Math.min(1, (t - anim.t0)/anim.dur), e = d3.easeCubicInOut(k);
-    rot = anim.from.map((v,i)=> v + (anim.to[i] - v) * e);
-    if (k >= 1){ anim = null; lastInteract = t; }
-    draw(); return;
-  }
-  const spin = state.autoRotate !== false && !dragging && !current && !placing && t - lastInteract > 5000
-    && !matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (spin){ rot[0] += .06 * dt; draw(); }
+function focusOn(r){
+  const c = globe.controls(); c.autoRotate = false; clearTimeout(idleTimer);
+  const alt = Math.min(globe.pointOfView().altitude, 2);
+  globe.pointOfView({ lat: r.lat, lng: r.lon, altitude: alt }, 1200);
 }
 
 /* ---------- 핀 ---------- */
-let pins = {};
-function buildPins(){
-  Object.values(pins).forEach(p=> p.remove()); pins = {};
-  state.regions.forEach(r=>{
-    const b = document.createElement("button");
-    b.className = "pin " + (r.label || "right");
-    b.style.setProperty("--c", r.color);
-    b.setAttribute("aria-label", `${r.name} 음악 재생`);
-    b.innerHTML = `<span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span><span class="lbl"></span>`;
-    b.querySelector(".lbl").textContent = r.name;
-    b.onclick = ()=> toggle(r.id);
-    if (r.id === current) b.classList.add("on");
-    $("stage").appendChild(b); pins[r.id] = b;
-  });
-  placePins();
+const pinEls = {};
+function pinEl(r){
+  const b = document.createElement("button");
+  b.className = "pin " + (r.label || "right");
+  b.style.setProperty("--c", r.color);
+  b.setAttribute("aria-label", `${r.name} 음악 재생`);
+  b.innerHTML = `<span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span><span class="lbl"></span>`;
+  b.querySelector(".lbl").textContent = r.name;
+  b.addEventListener("pointerdown", e=> e.stopPropagation());
+  b.onclick = e=>{ e.stopPropagation(); toggle(r.id); };
+  if (r.id === current) b.classList.add("on");
+  pinEls[r.id] = b;
+  return b;
 }
-function placePins(){
-  const center = [-rot[0], -rot[1]];
-  state.regions.forEach(r=>{
-    const b = pins[r.id]; if (!b) return;
-    const p = projection([r.lon, r.lat]);
-    const front = d3.geoDistance([r.lon, r.lat], center) < Math.PI/2 - .05;
-    b.classList.toggle("back", !front);
-    b.tabIndex = front ? 0 : -1;
-    if (p) b.style.transform = `translate(${p[0].toFixed(1)}px, ${p[1].toFixed(1)}px)`;
-  });
-}
+function buildPins(){ if (globe) globe.htmlElementsData(state.regions.map(r=>({...r}))); }
 
 /* ---------- 재생 ---------- */
 const players = {};
 let current = null;
 const fades = new Map();
+function srcFor(id){ return urls[id] || repoFile(id); }
 function player(id){
   if (!players[id]){
     const a = new Audio(); a.preload = "auto";
     a.addEventListener("ended", ()=>{ if (current === id) endCurrent(); });
     players[id] = a;
   }
-  const a = players[id];
-  if (urls[id] && a.src !== urls[id]) a.src = urls[id];
+  const a = players[id], want = new URL(srcFor(id), location.href).href;
+  if (a.src !== want) a.src = want;
   a.loop = !!state.loop;
   return a;
 }
@@ -349,25 +297,27 @@ function fadeTo(a, target, secs, done){
   fades.set(a, requestAnimationFrame(tick));
 }
 function stopOne(id){
-  const a = players[id]; pins[id]?.classList.remove("on");
+  const a = players[id]; pinEls[id]?.classList.remove("on");
   if (a) fadeTo(a, 0, FADE, ()=>{ a.pause(); a.currentTime = 0; });
 }
-function endCurrent(){ if (current) pins[current]?.classList.remove("on"); current = null; $("now").classList.remove("show"); }
+function endCurrent(){ if (current) pinEls[current]?.classList.remove("on"); current = null; $("now").classList.remove("show"); scheduleSpin(); }
 async function toggle(id){
   if (current === id){ stopAll(); return; }
-  const r = state.regions.find(x=>x.id===id);
-  if (!urls[id]){ toast(`‘${r.name}’에 아직 음원이 없어요. 관리에서 넣어 주세요.`); return; }
+  const r = state.regions.find(x=>x.id===id); if (!r) return;
   if (current) stopOne(current);
   current = id;
-  focusOn(r.lon, r.lat);
+  focusOn(r);
   const a = player(id);
-  pins[id].classList.add("on");
+  pinEls[id]?.classList.add("on");
   a.volume = 0; a.currentTime = 0;
   try { await a.play(); fadeTo(a, 1, FADE); showNow(r); }
-  catch(e){ if (current === id){ endCurrent(); toast(`‘${r.name}’ 음원을 재생할 수 없어요`); } }
+  catch(e){
+    if (current !== id) return;
+    endCurrent();
+    toast(VIEWER ? `‘${r.name}’ 음악이 아직 준비되지 않았어요` : `‘${r.name}’ 음원이 없어요. 관리에서 넣어 주세요.`);
+  }
 }
 function stopAll(){ if (current) stopOne(current); endCurrent(); }
-
 function showNow(r){
   const n = $("now");
   n.style.setProperty("--c", r.color);
@@ -385,8 +335,8 @@ setInterval(()=>{
 $("pauseBtn").onclick = ()=>{
   if (!current) return;
   const a = players[current];
-  if (a.paused){ a.play(); pins[current].classList.add("on"); $("pauseBtn").textContent = "일시정지"; }
-  else { a.pause(); pins[current].classList.remove("on"); $("pauseBtn").textContent = "계속"; }
+  if (a.paused){ a.play(); pinEls[current]?.classList.add("on"); $("pauseBtn").textContent = "일시정지"; }
+  else { a.pause(); pinEls[current]?.classList.remove("on"); $("pauseBtn").textContent = "계속"; }
 };
 $("stopBtn").onclick = stopAll;
 
@@ -395,13 +345,21 @@ function toast(t){
   const el = $("toast"); el.textContent = t; el.classList.add("show");
   clearTimeout(toastTimer); toastTimer = setTimeout(()=> el.classList.remove("show"), 3500);
 }
+function renderHeader(){ $("title").textContent = state.title; $("sub").textContent = state.subtitle; document.title = state.title; }
 
-/* ---------- 관리 화면 ---------- */
-function renderHeader(){
-  $("title").textContent = state.title; $("sub").textContent = state.subtitle; document.title = state.title;
+/* ---------- QR (관객용 주소 = 지금 주소 + ?view) ---------- */
+function renderQR(){
+  if (VIEWER || !window.QRCode) return;
+  const link = location.origin + location.pathname + "?view";
+  $("qrbox").innerHTML = "";
+  new QRCode($("qrbox"), { text: link, width: 264, height: 264, colorDark:"#0B0E22", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M });
 }
+
+/* ---------- 관리 화면 (진행자만) ---------- */
 function openPanel(){
-  $("fTitle").value = state.title; $("fSub").value = state.subtitle; $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
+  if (VIEWER) return;
+  $("fTitle").value = state.title; $("fSub").value = state.subtitle;
+  $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
   renderList(); $("panel").classList.add("open"); updateUsage();
 }
 function closePanel(){ $("panel").classList.remove("open"); }
@@ -409,8 +367,8 @@ $("adminBtn").onclick = openPanel;
 $("closePanel").onclick = closePanel;
 $("fTitle").oninput = e=>{ state.title = e.target.value; renderHeader(); saveState(); };
 $("fSub").oninput = e=>{ state.subtitle = e.target.value; renderHeader(); saveState(); };
-$("fSpin").onchange = e=>{ state.autoRotate = e.target.checked; saveState(); };
 $("fLoop").onchange = e=>{ state.loop = e.target.checked; Object.values(players).forEach(a=> a.loop = state.loop); saveState(); };
+$("fSpin").onchange = e=>{ state.autoRotate = e.target.checked; if (!e.target.checked) globe.controls().autoRotate = false; else scheduleSpin(); saveState(); };
 
 function renderList(){
   $("cnt").textContent = `지역 ${state.regions.length}곳`;
@@ -429,6 +387,7 @@ function renderList(){
       <div class="file"><span class="fn"></span>
         <label class="pbtn">음원 선택<input type="file" accept="audio/*" hidden></label>
       </div>
+      <div class="gh">관객용 GitHub 파일 이름: <code></code></div>
       <div class="acts">
         <button class="pbtn" data-a="play">들어보기</button>
         <button class="pbtn" data-a="move">위치 옮기기</button>
@@ -437,19 +396,19 @@ function renderList(){
       </div>`;
     const [color, name, label] = [el.querySelector("input[type=color]"), el.querySelector("input[type=text]"), el.querySelector("select")];
     color.value = r.color; name.value = r.name; label.value = r.label || "right";
+    el.querySelector(".gh code").textContent = repoFile(r.id);
     const fn = el.querySelector(".fn");
-    const setFn = ()=>{ fn.textContent = fileNames[r.id] ? "✓ " + fileNames[r.id] : "음원 없음"; fn.classList.toggle("ok", !!fileNames[r.id]); };
+    const setFn = ()=>{ fn.textContent = fileNames[r.id] ? "✓ " + fileNames[r.id] : "이 컴퓨터에 음원 없음"; fn.classList.toggle("ok", !!fileNames[r.id]); };
     setFn();
-    color.oninput = ()=>{ r.color = color.value; pins[r.id]?.style.setProperty("--c", r.color); saveState(); };
-    name.oninput = ()=>{ r.name = name.value || "이름 없음"; pins[r.id].querySelector(".lbl").textContent = r.name; saveState(); };
+    color.onchange = ()=>{ r.color = color.value; buildPins(); saveState(); };
+    name.oninput = ()=>{ r.name = name.value || "이름 없음"; const l = pinEls[r.id]?.querySelector(".lbl"); if (l) l.textContent = r.name; saveState(); };
+    name.onchange = ()=> buildPins();
     label.onchange = ()=>{ r.label = label.value; buildPins(); saveState(); };
     el.querySelector("input[type=file]").onchange = async e=>{
       const f = e.target.files[0]; if (!f) return;
       fn.textContent = "저장하는 중…";
-      try {
-        await store.put("audio", r.id, { blob:f, name:f.name, type:f.type });
-        setUrl(r.id, f, f.name); setFn(); updateUsage();
-      } catch(err){ fn.textContent = "저장하지 못했어요 (용량 부족일 수 있어요)"; }
+      try { await store.put("audio", r.id, { blob:f, name:f.name }); setUrl(r.id, f, f.name); setFn(); updateUsage(); }
+      catch(err){ fn.textContent = "저장하지 못했어요 (용량 부족일 수 있어요)"; }
       e.target.value = "";
     };
     el.querySelector('[data-a="play"]').onclick = ()=> toggle(r.id);
@@ -471,37 +430,39 @@ function renderList(){
   });
 }
 $("addRegion").onclick = ()=>{
-  const id = "r" + Date.now().toString(36);
-  state.regions.push({ id, name:"새 지역", lon:0, lat:0, label:"right", color: PALETTE[state.regions.length % PALETTE.length] });
+  const id = "region" + (Date.now() % 100000);
+  const pov = globe.pointOfView();
+  state.regions.push({ id, name:"새 지역", lon:+pov.lng.toFixed(2), lat:+pov.lat.toFixed(2), label:"right", color: PALETTE[state.regions.length % PALETTE.length] });
   buildPins(); renderList(); saveState();
   startPlacing(id);
 };
+$("exportBtn").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "regions.json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+};
 
-/* 지도에서 위치 지정 */
+/* 지구본에서 위치 지정 */
 let placing = null;
 function startPlacing(id){
   placing = id; closePanel(); document.body.classList.add("placing");
+  globe.controls().autoRotate = false; clearTimeout(idleTimer);
   toast(`지구본을 돌려서 ‘${state.regions.find(r=>r.id===id).name}’ 위치를 눌러 주세요 (취소: Esc)`);
 }
-function endPlacing(){ placing = null; document.body.classList.remove("placing"); openPanel(); }
-function placeAt(x, y){
-  const r0 = radius(), c = projection.translate();
-  if (Math.hypot(x - c[0], y - c[1]) > r0){ toast("지구본 위를 눌러 주세요"); return; }
-  const ll = projection.invert([x, y]);
-  const r = state.regions.find(q=> q.id === placing);
-  r.lon = +ll[0].toFixed(2); r.lat = +ll[1].toFixed(2);
-  placePins(); saveState(); endPlacing();
+function endPlacing(){ placing = null; document.body.classList.remove("placing"); openPanel(); scheduleSpin(); }
+function placeAt(lat, lng){
+  const r = state.regions.find(q=> q.id === placing); if (!r) return endPlacing();
+  r.lon = +lng.toFixed(2); r.lat = +lat.toFixed(2);
+  buildPins(); saveState(); endPlacing();
 }
 document.addEventListener("keydown", e=>{
   if (e.key !== "Escape") return;
   if (placing) endPlacing(); else if ($("panel").classList.contains("open")) closePanel(); else stopAll();
 });
 
-/* 음원 주소 관리 */
 function setUrl(id, blob, name){
   dropUrl(id);
   urls[id] = URL.createObjectURL(blob); fileNames[id] = name;
-  if (players[id]) players[id].src = urls[id];
 }
 function dropUrl(id){
   if (urls[id]) URL.revokeObjectURL(urls[id]);
@@ -509,28 +470,32 @@ function dropUrl(id){
   if (players[id]){ players[id].pause(); players[id].removeAttribute("src"); delete players[id]; }
 }
 async function updateUsage(){
-  try {
-    const e = await navigator.storage.estimate();
-    $("usage").textContent = `현재 사용량 약 ${(e.usage/1048576).toFixed(1)}MB.`;
-  } catch(err){}
+  try { const e = await navigator.storage.estimate(); $("usage").textContent = `현재 사용량 약 ${(e.usage/1048576).toFixed(1)}MB.`; } catch(err){}
 }
 
 /* ---------- 시작 ---------- */
 (async function main(){
+  // 1) GitHub에 올린 regions.json이 있으면 기본값으로 사용
   try {
-    await store.open();
-    const saved = await store.get("kv","state");
-    if (saved && Array.isArray(saved.regions)) state = saved;
-    const keys = await store.keys("audio");
-    for (const k of keys){
-      const rec = await store.get("audio", k);
-      if (rec && rec.blob) setUrl(k, rec.blob, rec.name);
-    }
-    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
-  } catch(e){ toast("이 브라우저에서는 음원을 저장할 수 없어요. 시크릿 창이 아닌 일반 창으로 열어 주세요."); }
-  renderHeader(); buildPins();
-  addEventListener("resize", draw);
-  draw(); loadWorld(); requestAnimationFrame(loop);
+    const res = await fetch("regions.json", { cache:"no-store" });
+    if (res.ok){ const j = await res.json(); if (Array.isArray(j.regions)) state = { ...DEFAULTS, ...j }; }
+  } catch(e){}
+  // 2) 진행자 컴퓨터라면 이 브라우저에 저장된 설정과 음원을 우선 사용
+  if (!VIEWER){
+    try {
+      await store.open();
+      const saved = await store.get("kv","state");
+      if (saved && Array.isArray(saved.regions)) state = saved;
+      for (const k of await store.keys("audio")){
+        const rec = await store.get("audio", k);
+        if (rec && rec.blob) setUrl(k, rec.blob, rec.name);
+      }
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+    } catch(e){ toast("이 브라우저에서는 음원을 저장할 수 없어요. 시크릿 창이 아닌 일반 창으로 열어 주세요."); }
+  }
+  renderHeader(); renderQR();
+  if (typeof Globe !== "function"){ $("loading").textContent = "지구본을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요."; return; }
+  initGlobe(); buildPins();
 })();
 </script>
 </body>
