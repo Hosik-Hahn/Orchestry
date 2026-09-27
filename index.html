@@ -335,7 +335,6 @@ const startRegion = ()=> state.regions.find(r=> r.id === state.startId) || null;
 /* 출발 지역의 설명 카드를 열어요 (처음 화면, 처음으로 되감았을 때) */
 function showStart(){
   const st = startRegion(); if (!st || flight) return;
-  if (!VIEWER){ Object.values(pinEls).forEach(p=> p.classList.remove("on")); pinEls[st.id]?.classList.add("on"); }
   showInfo(st);
 }
 
@@ -460,7 +459,7 @@ function pinEl(r){
   b.querySelector(".lbl").textContent = r.name;
   b.addEventListener("pointerdown", e=> e.stopPropagation());
   b.onclick = e=>{ e.stopPropagation(); onPin(r.id); };
-  if (r.id === current) b.classList.add("on");
+  if (r.id === shown) b.classList.add("on");
   pinEls[r.id] = b;
   return b;
 }
@@ -477,8 +476,6 @@ function onPin(id){
     flyTo(r, ()=> showInfo(r));
   } else {
     if (current) stopAll();
-    Object.values(pinEls).forEach(p=> p.classList.remove("on"));
-    pinEls[id]?.classList.add("on");
     hideInfo();
     flyTo(r, ()=>{ showInfo(r); setPlayUI(false, true); });
   }
@@ -511,7 +508,7 @@ function fadeTo(a, target, secs, done){
   fades.set(a, requestAnimationFrame(tick));
 }
 function stopOne(id){
-  const a = players[id]; pinEls[id]?.classList.remove("on");
+  const a = players[id];
   if (a) fadeTo(a, 0, FADE, ()=>{ a.pause(); a.currentTime = 0; });
 }
 let shown = null;
@@ -523,20 +520,19 @@ async function toggle(id, deferInfo){
   current = id;
   if (!deferInfo){ showInfo(r); globe.pointOfView({ lat:r.lat, lng:r.lon }, 1000); }
   const a = player(id);
-  pinEls[id]?.classList.add("on");
   a.volume = 0; a.currentTime = 0;
   try { await a.play(); missing.delete(id); fadeTo(a, 1, FADE); setPlayUI(true); if (!VIEWER && !master.paused) toast("전체 음원과 함께 재생 중이에요"); }
   catch(e){
     if (current !== id) return;
-    missing.add(id); pinEls[id]?.classList.remove("on"); current = null; setPlayUI(false, true);
+    missing.add(id); current = null; setPlayUI(false, true);
     if (!VIEWER) toast(`‘${r.name}’ 음원이 없어요. 관리에서 넣어 주세요.`);
   }
 }
 function stopAll(){ if (current) stopOne(current); endCurrent(); }
-function endCurrent(){ if (current) pinEls[current]?.classList.remove("on"); current = null; setPlayUI(false); scheduleSpin(); }
+function endCurrent(){ current = null; setPlayUI(false); scheduleSpin(); }
 function imgSrc(r){ return imgUrls[r.id] || r.img || ""; }
 function showInfo(r){
-  shown = r.id;
+  shown = r.id; setActivePin(r.id);
   setPlayUI(!!(current === r.id && players[r.id] && !players[r.id].paused), (!VIEWER && current !== r.id) || missing.has(r.id));
   const box = $("info"), pic = box.querySelector(".pic");
   box.style.setProperty("--c", r.color);
@@ -551,7 +547,9 @@ function showInfo(r){
   box.querySelector(".bar i").style.width = "0%";
   box.classList.add("show"); document.body.classList.add("reading");
 }
-function hideInfo(){ if (!VIEWER) Object.values(pinEls).forEach(p=> p.classList.remove("on")); shown = null; $("info").classList.remove("show"); document.body.classList.remove("reading"); }
+/* 파동은 지금 설명이 열려 있는(도착한) 지역에 표시돼요 */
+function setActivePin(id){ Object.entries(pinEls).forEach(([k, p])=> p.classList.toggle("on", k === id)); }
+function hideInfo(){ setActivePin(null); shown = null; $("info").classList.remove("show"); document.body.classList.remove("reading"); }
 function setPlayUI(playing, missing){
   const box = $("info");
   box.querySelector(".play").style.display = (missing && !playing) ? "none" : "";
@@ -568,8 +566,8 @@ setInterval(()=>{
 $("pauseBtn").onclick = ()=>{
   if (!current){ if (shown) toggle(shown, true); return; }
   const a = players[current];
-  if (a.paused){ a.play(); pinEls[current]?.classList.add("on"); $("pauseBtn").textContent = "일시정지"; }
-  else { a.pause(); pinEls[current]?.classList.remove("on"); $("pauseBtn").textContent = "계속"; }
+  if (a.paused){ a.play(); $("pauseBtn").textContent = "일시정지"; }
+  else { a.pause(); $("pauseBtn").textContent = "계속"; }
 };
 
 /* ---------- 전체 음원 (진행자 화면 아래 막대) ---------- */
