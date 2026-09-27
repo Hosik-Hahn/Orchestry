@@ -342,34 +342,50 @@ function flyTo(r, onArrive){
   const pts = [];
   for (let k=0; k<=60; k++){ const t = k/60, ll = toLL(slerp(P, Q, t)); pts.push([ll[0], ll[1], .01 + peak*Math.sin(Math.PI*t)]); }
   globe.pathTransitionDuration(dur).pathsData([{ pts }]);
-  clearTimeout(hideTimer); clearTimeout(trailTimer);
+  clearTimeout(trailTimer);
   flight = { P, Q, peak, dur, t0: performance.now(), baseAlt, ang, onArrive };
   following = true;
   $("plane").classList.add("show");
 }
+let planeHeading = -30;   // 처음엔 살짝 위(북동쪽)를 향해 서 있어요
+function drawPlane(lat, lng, alt, heading){
+  const a = globe.getScreenCoords(lat, lng, alt);
+  if (!a || !isFinite(a.x) || !isFinite(a.y)) return;
+  const pov = globe.pointOfView(), cv = toVec(pov.lat, pov.lng), pv = toVec(lat, lng);
+  // 지구본을 돌려 비행기 위치가 완전히 뒤편으로 갔을 때만 가려져요
+  const visible = following || (cv[0]*pv[0]+cv[1]*pv[1]+cv[2]*pv[2]) * (1+alt) > 1/(1+pov.altitude) - .12;
+  const el = $("plane");
+  el.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px) rotate(${heading.toFixed(1)}deg) scale(${(1 + alt*1.2).toFixed(3)})`;
+  el.style.visibility = visible ? "visible" : "hidden";
+  el.classList.add("show");
+}
 function flightFrame(now){
   requestAnimationFrame(flightFrame);
-  if (!flight) return;
+  if (!globe) return;
+  if (!flight){
+    // 비행하지 않을 때는 마지막으로 도착한 곳(처음엔 출발 지역)에 머물러 있어요
+    const at = lastStop || startRegion();
+    if (at) drawPlane(at.lat, at.lon, .02, planeHeading);
+    return;
+  }
   const f = flight, raw = Math.min(1, (now - f.t0)/f.dur);
-  const t = raw < .5 ? 2*raw*raw : 1 - Math.pow(-2*raw+2, 2)/2;   // 부드럽게 출발·도착
-  const ll = toLL(slerp(f.P, f.Q, t)), alt = .01 + f.peak*Math.sin(Math.PI*t);
-  const ll2 = toLL(slerp(f.P, f.Q, Math.min(1, t + .01))), alt2 = .01 + f.peak*Math.sin(Math.PI*Math.min(1, t+.01));
+  const ease = x=> x < .5 ? 2*x*x : 1 - Math.pow(-2*x+2, 2)/2;   // 부드럽게 출발·도착
+  const t = ease(raw);
+  const ll = toLL(slerp(f.P, f.Q, t)), alt = .02 + f.peak*Math.sin(Math.PI*t);
   if (following){
     globe.pointOfView({ lat: ll[0], lng: ll[1], altitude: f.baseAlt + .5*Math.sin(Math.PI*t)*(f.ang/Math.PI) }, 0);
   }
+  // 진행 방향: 조금 앞 지점과 비교 (도착 직전엔 조금 뒤 지점과 비교해서 방향이 튀지 않게)
+  const t2 = t < .98 ? t + .02 : t - .02;
+  const ll2 = toLL(slerp(f.P, f.Q, t2)), alt2 = .02 + f.peak*Math.sin(Math.PI*t2);
   const a = globe.getScreenCoords(ll[0], ll[1], alt), b = globe.getScreenCoords(ll2[0], ll2[1], alt2);
-  const pov = globe.pointOfView(), cv = toVec(pov.lat, pov.lng), pv = toVec(ll[0], ll[1]);
-  // 지구 뒤편으로 확실히 넘어갔을 때만 숨겨요
-  const visible = following || (cv[0]*pv[0]+cv[1]*pv[1]+cv[2]*pv[2]) * (1+alt) > 1/(1+pov.altitude) - .08;
-  const heading = raw >= 1 ? (flight.heading || 0) : deg(Math.atan2(b.y - a.y, b.x - a.x));
-  flight.heading = heading;
-  const el = $("plane");
-  if (!a || !isFinite(a.x) || !isFinite(a.y)) return;
-  el.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px) rotate(${heading.toFixed(1)}deg) scale(${(1 + alt*1.2).toFixed(3)})`;
-  el.style.visibility = visible ? "visible" : "hidden";
+  if (a && b){
+    const dx = (b.x - a.x) * (t < .98 ? 1 : -1), dy = (b.y - a.y) * (t < .98 ? 1 : -1);
+    if (Math.hypot(dx, dy) > .5) planeHeading = deg(Math.atan2(dy, dx));
+  }
+  drawPlane(ll[0], ll[1], alt, planeHeading);
   if (raw >= 1){
     const done = f.onArrive; flight = null; following = false;
-    hideTimer = setTimeout(()=>{ if (!flight) $("plane").classList.remove("show"); }, 900);
     trailTimer = setTimeout(()=>{ if (!flight) globe.pathsData([]); }, 4000);
     done && done();
   }
@@ -700,6 +716,7 @@ function renderList(){
       await store.del("audio", r.id).catch(()=>{});
       await store.del("images", r.id).catch(()=>{});
       if (shown === r.id) hideInfo();
+      if (lastStop && lastStop.id === r.id) lastStop = startRegion();
       dropUrl(r.id); buildPins(); renderList(); saveState(); updateUsage();
     };
     list.appendChild(el);
