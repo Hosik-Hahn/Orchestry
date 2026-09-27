@@ -35,9 +35,15 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 
 #stage{position:absolute;inset:0}
 #map{position:absolute;inset:0;width:100%;height:100%}
+#map{touch-action:none;cursor:grab}
+#map.dragging{cursor:grabbing}
 #map .land{fill:var(--land);stroke:var(--edge);stroke-width:.6}
 #map .grat{fill:none;stroke:var(--line);stroke-width:.6}
-#map .sphere{fill:none;stroke:var(--line);stroke-width:1}
+#map .ocean{fill:url(#oceanG)}
+#map .shine{fill:url(#shineG);pointer-events:none}
+#map .glow{fill:none;stroke:var(--edge);stroke-opacity:.5;stroke-width:1.2;filter:drop-shadow(0 0 18px var(--edge))}
+.pin{transition:opacity .2s}
+.pin.back{opacity:0;pointer-events:none}
 
 .pin{position:absolute;left:0;top:0;width:0;height:0;border:0;background:none;padding:0;z-index:2}
 .pin .dot{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--c);
@@ -73,6 +79,40 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
   padding:10px 16px;border-radius:12px;font-size:14px;max-width:calc(100% - 32px);text-align:center;opacity:0;transition:opacity .3s;pointer-events:none;z-index:5}
 #toast.show{opacity:1}
 @media (prefers-reduced-motion:reduce){.pin.on .ring{animation:none;opacity:.6;transform:scale(2)}}
+
+#adminBtn{position:absolute;top:calc(22px + env(safe-area-inset-top,0px));right:24px;z-index:4;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px}
+#adminBtn:hover{background:var(--sea2)}
+#panel{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--sea);border-left:1px solid var(--line);z-index:6;
+  transform:translateX(105%);transition:transform .3s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#panel.open{transform:none}
+#panel .ph{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+#panel .ph h2{margin:0;font-size:19px}
+#panel .pb{flex:1;overflow:auto;padding:16px 20px 30px}
+.pbtn{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px}
+.pbtn:hover{background:var(--sea2)}
+.pbtn.primary{background:var(--ink);color:var(--sea);border-color:var(--ink)}
+.pbtn.danger{color:#FF5E5B;border-color:rgba(255,94,91,.5)}
+.fld{display:block;margin-bottom:12px}
+.fld span{display:block;font-size:12px;color:var(--mute);font-weight:600;margin-bottom:5px}
+.fld input,.fld select,.rg input[type=text],.rg select{width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:var(--sea2);color:var(--ink);font:inherit;font-size:14px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0 18px}
+.sec{font-size:13px;font-weight:800;color:var(--mute);margin:22px 0 10px;display:flex;justify-content:space-between;align-items:center}
+.rg{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--sea2)}
+.rg .top{display:flex;gap:8px;align-items:center}
+.rg input[type=color]{width:34px;height:34px;border:0;border-radius:50%;padding:0;background:none;flex:none;cursor:pointer}
+.rg input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.rg input[type=color]::-webkit-color-swatch{border:none;border-radius:50%}
+.rg .top input[type=text]{flex:1}
+.rg .top select{width:auto;flex:none}
+.rg .file{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px}
+.rg .file .fn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mute)}
+.rg .file .fn.ok{color:var(--ink)}
+.rg .acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.hint{position:absolute;left:28px;bottom:calc(24px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);z-index:3;pointer-events:none}
+@media (max-width:720px){.hint{display:none}}
+.note{font-size:12.5px;color:var(--mute);line-height:1.6;margin:14px 0 0}
+body.placing #map{cursor:crosshair}
+body.placing .pin{pointer-events:none}
 </style>
 </head>
 <body>
@@ -83,6 +123,9 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 <div id="stage">
   <svg id="map" role="img" aria-label="세계 지도"></svg>
 </div>
+<button id="adminBtn">관리</button>
+<div class="hint">드래그해서 돌리기 · 휠로 확대/축소</div>
+
 <div id="now" aria-live="polite">
   <span class="sw"></span>
   <div class="info"><div class="t"></div><div class="bar"><i></i></div><div class="time"></div></div>
@@ -91,92 +134,210 @@ header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 </div>
 <div id="toast" role="status"></div>
 
+<aside id="panel" aria-label="관리">
+  <div class="ph"><h2>관리</h2><button class="pbtn" id="closePanel">닫기</button></div>
+  <div class="pb">
+    <label class="fld"><span>제목</span><input id="fTitle" maxlength="60"></label>
+    <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
+    <label class="chk"><input type="checkbox" id="fLoop"> 곡이 끝나면 반복 재생</label>
+    <label class="chk" style="margin-top:-10px"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
+    <div class="sec"><span id="cnt">지역</span><button class="pbtn primary" id="addRegion">+ 지역 추가</button></div>
+    <div id="list"></div>
+    <p class="note">음원은 이 컴퓨터의 브라우저에만 저장돼요. 다른 컴퓨터나 다른 브라우저에서는 다시 넣어야 하고, 브라우저의 사이트 데이터를 지우면 함께 지워집니다. <span id="usage"></span></p>
+  </div>
+</aside>
+
 <script>
-/* ================================================================
-   여기만 고치면 됩니다
-   - title / subtitle : 화면 왼쪽 위 글자
-   - file : 저장소의 audio 폴더에 올린 음원 파일 이름 (대소문자·확장자까지 똑같이)
-   - lon, lat : 핀 위치 (경도, 위도)
-   - label : 이름표 방향 "right" / "left" / "below" / "above"
-   - loop : true면 음원이 끝나도 반복 재생
-   ================================================================ */
-const SETTINGS = {
+/* ---------- 기본값 (처음 열 때만 쓰임, 이후엔 관리 화면에서 바꾼 내용이 저장돼요) ---------- */
+const DEFAULTS = {
   title: "세계의 소리",
   subtitle: "지도 위 지역을 누르면 그곳의 음악이 흘러나옵니다",
   loop: false,
-  fade: 0.8   // 곡이 바뀔 때 부드럽게 넘어가는 시간(초)
+  autoRotate: true,
+  regions: [
+    { id:"mongolia", name:"몽골",       lon: 103.8, lat: 46.9,  label:"right", color:"#FFB400" },
+    { id:"scotland", name:"스코틀랜드", lon:  -4.2, lat: 56.8,  label:"left",  color:"#5FD4F4" },
+    { id:"mexico",   name:"멕시코",     lon:-102.5, lat: 23.6,  label:"left",  color:"#FF8A3D" },
+    { id:"france",   name:"프랑스",     lon:   2.2, lat: 46.6,  label:"left",  color:"#3D9BFF" },
+    { id:"africa",   name:"아프리카",   lon:  20.0, lat:  3.0,  label:"right", color:"#FF5E5B" },
+    { id:"greece",   name:"그리스",     lon:  22.0, lat: 39.1,  label:"below", color:"#8C8CFF" },
+    { id:"hawaii",   name:"하와이",     lon:-156.5, lat: 20.3,  label:"below", color:"#2EC27E" },
+    { id:"brazil",   name:"브라질",     lon: -51.9, lat:-10.3,  label:"right", color:"#9BE15D" },
+    { id:"india",    name:"인도",       lon:  78.9, lat: 21.0,  label:"right", color:"#FF8FC7" },
+    { id:"turkey",   name:"터키",       lon:  35.2, lat: 39.0,  label:"right", color:"#F2E14C" },
+    { id:"usa",      name:"미국",       lon: -98.5, lat: 39.5,  label:"right", color:"#C86BFA" }
+  ]
 };
-const REGIONS = [
-  { name:"몽골",       file:"audio/mongolia.mp3", lon: 103.8, lat: 46.9,  label:"right", color:"#FFB400" },
-  { name:"스코틀랜드", file:"audio/scotland.mp3", lon:  -4.2, lat: 56.8,  label:"left",  color:"#5FD4F4" },
-  { name:"멕시코",     file:"audio/mexico.mp3",   lon:-102.5, lat: 23.6,  label:"left",  color:"#FF8A3D" },
-  { name:"프랑스",     file:"audio/france.mp3",   lon:   2.2, lat: 46.6,  label:"left",  color:"#3D9BFF" },
-  { name:"아프리카",   file:"audio/africa.mp3",   lon:  20.0, lat:  3.0,  label:"right", color:"#FF5E5B" },
-  { name:"그리스",     file:"audio/greece.mp3",   lon:  22.0, lat: 39.1,  label:"below", color:"#8C8CFF" },
-  { name:"하와이",     file:"audio/hawaii.mp3",   lon:-156.5, lat: 20.3,  label:"below", color:"#2EC27E" },
-  { name:"브라질",     file:"audio/brazil.mp3",   lon: -51.9, lat:-10.3,  label:"right", color:"#9BE15D" },
-  { name:"인도",       file:"audio/india.mp3",    lon:  78.9, lat: 21.0,  label:"right", color:"#FF8FC7" },
-  { name:"터키",       file:"audio/turkey.mp3",   lon:  35.2, lat: 39.0,  label:"right", color:"#F2E14C" },
-  { name:"미국",       file:"audio/usa.mp3",      lon: -98.5, lat: 39.5,  label:"right", color:"#C86BFA" }
-];
-/* ================================================================ */
+const FADE = 0.8;
+const PALETTE = ["#FFB400","#5FD4F4","#FF8A3D","#3D9BFF","#FF5E5B","#8C8CFF","#2EC27E","#9BE15D","#FF8FC7","#F2E14C","#C86BFA","#00C2A8"];
 
 const $ = id => document.getElementById(id);
-$("title").textContent = SETTINGS.title;
-$("sub").textContent = SETTINGS.subtitle;
-document.title = SETTINGS.title;
+let state = structuredClone(DEFAULTS);
+const fileNames = {};       // id → 저장된 파일 이름
+const urls = {};            // id → 재생용 주소
 
+/* ---------- 브라우저 저장소 (IndexedDB) ---------- */
+const store = {
+  db: null,
+  open(){
+    return new Promise((res, rej)=>{
+      const r = indexedDB.open("world-sounds", 1);
+      r.onupgradeneeded = ()=>{ r.result.createObjectStore("kv"); r.result.createObjectStore("audio"); };
+      r.onsuccess = ()=>{ this.db = r.result; res(); };
+      r.onerror = ()=> rej(r.error);
+    });
+  },
+  req(name, mode, fn){
+    return new Promise((res, rej)=>{
+      if (!this.db) return rej(new Error("no db"));
+      const tx = this.db.transaction(name, mode), r = fn(tx.objectStore(name));
+      tx.oncomplete = ()=> res(r && r.result);
+      tx.onerror = ()=> rej(tx.error); tx.onabort = ()=> rej(tx.error);
+    });
+  },
+  get(n,k){ return this.req(n,"readonly",s=>s.get(k)); },
+  put(n,k,v){ return this.req(n,"readwrite",s=>s.put(v,k)); },
+  del(n,k){ return this.req(n,"readwrite",s=>s.delete(k)); },
+  keys(n){ return this.req(n,"readonly",s=>s.getAllKeys()); }
+};
+let saveTimer;
+function saveState(){ clearTimeout(saveTimer); saveTimer = setTimeout(()=> store.put("kv","state",state).catch(()=> toast("설정을 저장하지 못했어요")), 250); }
+
+/* ---------- 3D 지구본 ---------- */
 const svg = d3.select("#map");
-const gMap = svg.append("g");
-let projection = d3.geoNaturalEarth1(), world = null;
+const defs = svg.append("defs");
+const og = defs.append("radialGradient").attr("id","oceanG").attr("cx","38%").attr("cy","32%").attr("r","75%");
+og.append("stop").attr("offset","0%").attr("style","stop-color:var(--sea2)");
+og.append("stop").attr("offset","100%").attr("style","stop-color:var(--sea)");
+const sg = defs.append("radialGradient").attr("id","shineG").attr("cx","35%").attr("cy","28%").attr("r","80%");
+sg.append("stop").attr("offset","0%").attr("stop-color","#fff").attr("stop-opacity",.16);
+sg.append("stop").attr("offset","45%").attr("stop-color","#fff").attr("stop-opacity",0);
+sg.append("stop").attr("offset","100%").attr("stop-color","#000").attr("stop-opacity",.35);
+const glow = svg.append("path").attr("class","glow");
+const ocean = svg.append("path").attr("class","ocean");
+const grat = svg.append("path").attr("class","grat");
+const landG = svg.append("g");
+const shine = svg.append("path").attr("class","shine");
+let world = null, rot = [-20, -25, 0], zoom = 1;
+let projection = d3.geoOrthographic().clipAngle(90);
+const path = d3.geoPath(projection);
+const graticule = d3.geoGraticule10();
 
-/* ---------- 지도 ---------- */
 async function loadWorld(){
   try {
     const topo = await (await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")).json();
     world = topojson.feature(topo, topo.objects.countries);
+    landG.selectAll("path").data(world.features).join("path").attr("class","land");
   } catch(e){ world = null; }
   draw();
 }
+function radius(){ return Math.min(innerWidth, innerHeight - 120) * .42 * zoom; }
 function draw(){
   const W = innerWidth, H = innerHeight;
   svg.attr("viewBox", `0 0 ${W} ${H}`);
-  const pad = Math.min(W,H) * .06;
-  projection = d3.geoNaturalEarth1().fitExtent([[pad, pad + 40], [W - pad, H - pad - 70]], { type:"Sphere" });
-  const path = d3.geoPath(projection);
-  gMap.selectAll("*").remove();
-  gMap.append("path").attr("class","sphere").attr("d", path({type:"Sphere"}));
-  gMap.append("path").attr("class","grat").attr("d", path(d3.geoGraticule10()));
-  if (world) gMap.append("g").selectAll("path").data(world.features).join("path").attr("class","land").attr("d", path);
+  projection.scale(radius()).translate([W/2, H/2 + 20]).rotate(rot);
+  const sphere = path({type:"Sphere"});
+  glow.attr("d", sphere); ocean.attr("d", sphere); shine.attr("d", sphere);
+  grat.attr("d", path(graticule));
+  landG.selectAll("path").attr("d", path);
   placePins();
 }
 
+/* 드래그로 회전, 휠로 확대 */
+let dragging = false, dragMoved = false, lastInteract = 0, anim = null;
+{
+  let sx, sy, r0;
+  const el = $("map");
+  el.addEventListener("pointerdown", e=>{
+    dragging = true; dragMoved = false; sx = e.clientX; sy = e.clientY; r0 = rot.slice(); anim = null;
+    el.setPointerCapture(e.pointerId); el.classList.add("dragging");
+  });
+  el.addEventListener("pointermove", e=>{
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true;
+    const k = 57.3 / projection.scale();
+    rot = [r0[0] + dx*k, Math.max(-85, Math.min(85, r0[1] - dy*k)), 0];
+    lastInteract = performance.now(); draw();
+  });
+  const up = e=>{
+    if (!dragging) return;
+    dragging = false; el.classList.remove("dragging"); lastInteract = performance.now();
+    if (!dragMoved && placing) placeAt(e.clientX, e.clientY);
+  };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  el.addEventListener("wheel", e=>{
+    e.preventDefault();
+    zoom = Math.max(.6, Math.min(3.5, zoom * Math.exp(-e.deltaY * .0015)));
+    lastInteract = performance.now(); draw();
+  }, { passive:false });
+}
+/* 지역을 누르면 그 곳이 정면으로 오도록 부드럽게 회전 */
+function focusOn(lon, lat){
+  const from = rot.slice(), to = [-lon, Math.max(-60, Math.min(60, -lat)), 0];
+  while (to[0] - from[0] > 180) to[0] -= 360;
+  while (to[0] - from[0] < -180) to[0] += 360;
+  anim = { from, to, t0: performance.now(), dur: 1000 };
+}
+let lastFrame = 0;
+function loop(t){
+  requestAnimationFrame(loop);
+  const dt = Math.min(3, lastFrame ? (t - lastFrame)/16.7 : 1); lastFrame = t;
+  if (anim){
+    const k = Math.min(1, (t - anim.t0)/anim.dur), e = d3.easeCubicInOut(k);
+    rot = anim.from.map((v,i)=> v + (anim.to[i] - v) * e);
+    if (k >= 1){ anim = null; lastInteract = t; }
+    draw(); return;
+  }
+  const spin = state.autoRotate !== false && !dragging && !current && !placing && t - lastInteract > 5000
+    && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (spin){ rot[0] += .06 * dt; draw(); }
+}
+
 /* ---------- 핀 ---------- */
-const pins = REGIONS.map((r, i)=>{
-  const b = document.createElement("button");
-  b.className = "pin " + (r.label || "right");
-  b.style.setProperty("--c", r.color);
-  b.setAttribute("aria-label", `${r.name} 음악 재생`);
-  b.innerHTML = `<span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span><span class="lbl"></span>`;
-  b.querySelector(".lbl").textContent = r.name;
-  b.onclick = ()=> toggle(i);
-  $("stage").appendChild(b);
-  return b;
-});
+let pins = {};
+function buildPins(){
+  Object.values(pins).forEach(p=> p.remove()); pins = {};
+  state.regions.forEach(r=>{
+    const b = document.createElement("button");
+    b.className = "pin " + (r.label || "right");
+    b.style.setProperty("--c", r.color);
+    b.setAttribute("aria-label", `${r.name} 음악 재생`);
+    b.innerHTML = `<span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span><span class="lbl"></span>`;
+    b.querySelector(".lbl").textContent = r.name;
+    b.onclick = ()=> toggle(r.id);
+    if (r.id === current) b.classList.add("on");
+    $("stage").appendChild(b); pins[r.id] = b;
+  });
+  placePins();
+}
 function placePins(){
-  REGIONS.forEach((r,i)=>{
-    const [x,y] = projection([r.lon, r.lat]);
-    pins[i].style.transform = `translate(${x}px, ${y}px)`;
+  const center = [-rot[0], -rot[1]];
+  state.regions.forEach(r=>{
+    const b = pins[r.id]; if (!b) return;
+    const p = projection([r.lon, r.lat]);
+    const front = d3.geoDistance([r.lon, r.lat], center) < Math.PI/2 - .05;
+    b.classList.toggle("back", !front);
+    b.tabIndex = front ? 0 : -1;
+    if (p) b.style.transform = `translate(${p[0].toFixed(1)}px, ${p[1].toFixed(1)}px)`;
   });
 }
 
 /* ---------- 재생 ---------- */
-const players = REGIONS.map(r=>{
-  const a = new Audio(); a.preload = "none"; a.src = r.file; a.loop = SETTINGS.loop;
-  return a;
-});
-let current = -1;
+const players = {};
+let current = null;
 const fades = new Map();
+function player(id){
+  if (!players[id]){
+    const a = new Audio(); a.preload = "auto";
+    a.addEventListener("ended", ()=>{ if (current === id) endCurrent(); });
+    players[id] = a;
+  }
+  const a = players[id];
+  if (urls[id] && a.src !== urls[id]) a.src = urls[id];
+  a.loop = !!state.loop;
+  return a;
+}
 function fadeTo(a, target, secs, done){
   cancelAnimationFrame(fades.get(a));
   const from = a.volume, t0 = performance.now(), dur = Math.max(1, secs*1000);
@@ -187,67 +348,190 @@ function fadeTo(a, target, secs, done){
   };
   fades.set(a, requestAnimationFrame(tick));
 }
-function stopOne(i, fade){
-  const a = players[i];
-  pins[i].classList.remove("on");
-  fadeTo(a, 0, fade ? SETTINGS.fade : 0, ()=>{ a.pause(); a.currentTime = 0; });
+function stopOne(id){
+  const a = players[id]; pins[id]?.classList.remove("on");
+  if (a) fadeTo(a, 0, FADE, ()=>{ a.pause(); a.currentTime = 0; });
 }
-async function toggle(i){
-  if (current === i){ stopAll(); return; }
-  if (current >= 0) stopOne(current, true);
-  current = i;
-  const a = players[i];
-  pins[i].classList.add("on");
+function endCurrent(){ if (current) pins[current]?.classList.remove("on"); current = null; $("now").classList.remove("show"); }
+async function toggle(id){
+  if (current === id){ stopAll(); return; }
+  const r = state.regions.find(x=>x.id===id);
+  if (!urls[id]){ toast(`‘${r.name}’에 아직 음원이 없어요. 관리에서 넣어 주세요.`); return; }
+  if (current) stopOne(current);
+  current = id;
+  focusOn(r.lon, r.lat);
+  const a = player(id);
+  pins[id].classList.add("on");
   a.volume = 0; a.currentTime = 0;
-  try { await a.play(); fadeTo(a, 1, SETTINGS.fade); }
-  catch(e){ if (current === i) failed(i); return; }
-  showNow(i);
+  try { await a.play(); fadeTo(a, 1, FADE); showNow(r); }
+  catch(e){ if (current === id){ endCurrent(); toast(`‘${r.name}’ 음원을 재생할 수 없어요`); } }
 }
-function stopAll(){
-  if (current >= 0) stopOne(current, true);
-  current = -1; $("now").classList.remove("show");
-}
-function failed(i){
-  pins[i].classList.remove("on"); current = -1; $("now").classList.remove("show");
-  toast(`‘${REGIONS[i].name}’ 음원을 찾을 수 없어요 (${REGIONS[i].file})`);
-}
-players.forEach((a,i)=>{
-  a.addEventListener("error", ()=>{ if (current === i) failed(i); });
-  a.addEventListener("ended", ()=>{ if (current === i){ pins[i].classList.remove("on"); current = -1; $("now").classList.remove("show"); } });
-});
+function stopAll(){ if (current) stopOne(current); endCurrent(); }
 
-/* ---------- 재생 정보 ---------- */
-function showNow(i){
+function showNow(r){
   const n = $("now");
-  n.style.setProperty("--c", REGIONS[i].color);
-  n.querySelector(".t").textContent = REGIONS[i].name;
+  n.style.setProperty("--c", r.color);
+  n.querySelector(".t").textContent = r.name;
   $("pauseBtn").textContent = "일시정지";
   n.classList.add("show");
 }
 const fmt = s => isFinite(s) ? `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}` : "0:00";
 setInterval(()=>{
-  if (current < 0) return;
+  if (!current) return;
   const a = players[current];
   $("now").querySelector(".bar i").style.width = a.duration ? (a.currentTime/a.duration*100) + "%" : "0%";
   $("now").querySelector(".time").textContent = `${fmt(a.currentTime)} / ${fmt(a.duration)}`;
 }, 250);
 $("pauseBtn").onclick = ()=>{
-  if (current < 0) return;
+  if (!current) return;
   const a = players[current];
   if (a.paused){ a.play(); pins[current].classList.add("on"); $("pauseBtn").textContent = "일시정지"; }
   else { a.pause(); pins[current].classList.remove("on"); $("pauseBtn").textContent = "계속"; }
 };
 $("stopBtn").onclick = stopAll;
-document.addEventListener("keydown", e=>{ if (e.key === "Escape") stopAll(); });
 
 let toastTimer;
 function toast(t){
   const el = $("toast"); el.textContent = t; el.classList.add("show");
-  clearTimeout(toastTimer); toastTimer = setTimeout(()=> el.classList.remove("show"), 4000);
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=> el.classList.remove("show"), 3500);
 }
 
-addEventListener("resize", draw);
-loadWorld();
+/* ---------- 관리 화면 ---------- */
+function renderHeader(){
+  $("title").textContent = state.title; $("sub").textContent = state.subtitle; document.title = state.title;
+}
+function openPanel(){
+  $("fTitle").value = state.title; $("fSub").value = state.subtitle; $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
+  renderList(); $("panel").classList.add("open"); updateUsage();
+}
+function closePanel(){ $("panel").classList.remove("open"); }
+$("adminBtn").onclick = openPanel;
+$("closePanel").onclick = closePanel;
+$("fTitle").oninput = e=>{ state.title = e.target.value; renderHeader(); saveState(); };
+$("fSub").oninput = e=>{ state.subtitle = e.target.value; renderHeader(); saveState(); };
+$("fSpin").onchange = e=>{ state.autoRotate = e.target.checked; saveState(); };
+$("fLoop").onchange = e=>{ state.loop = e.target.checked; Object.values(players).forEach(a=> a.loop = state.loop); saveState(); };
+
+function renderList(){
+  $("cnt").textContent = `지역 ${state.regions.length}곳`;
+  const list = $("list"); list.innerHTML = "";
+  state.regions.forEach(r=>{
+    const el = document.createElement("div"); el.className = "rg";
+    el.innerHTML = `
+      <div class="top">
+        <input type="color" aria-label="색">
+        <input type="text" maxlength="20" aria-label="지역 이름">
+        <select aria-label="이름표 위치">
+          <option value="right">이름 오른쪽</option><option value="left">이름 왼쪽</option>
+          <option value="above">이름 위</option><option value="below">이름 아래</option>
+        </select>
+      </div>
+      <div class="file"><span class="fn"></span>
+        <label class="pbtn">음원 선택<input type="file" accept="audio/*" hidden></label>
+      </div>
+      <div class="acts">
+        <button class="pbtn" data-a="play">들어보기</button>
+        <button class="pbtn" data-a="move">위치 옮기기</button>
+        <button class="pbtn" data-a="clear">음원 지우기</button>
+        <button class="pbtn danger" data-a="delete">지역 삭제</button>
+      </div>`;
+    const [color, name, label] = [el.querySelector("input[type=color]"), el.querySelector("input[type=text]"), el.querySelector("select")];
+    color.value = r.color; name.value = r.name; label.value = r.label || "right";
+    const fn = el.querySelector(".fn");
+    const setFn = ()=>{ fn.textContent = fileNames[r.id] ? "✓ " + fileNames[r.id] : "음원 없음"; fn.classList.toggle("ok", !!fileNames[r.id]); };
+    setFn();
+    color.oninput = ()=>{ r.color = color.value; pins[r.id]?.style.setProperty("--c", r.color); saveState(); };
+    name.oninput = ()=>{ r.name = name.value || "이름 없음"; pins[r.id].querySelector(".lbl").textContent = r.name; saveState(); };
+    label.onchange = ()=>{ r.label = label.value; buildPins(); saveState(); };
+    el.querySelector("input[type=file]").onchange = async e=>{
+      const f = e.target.files[0]; if (!f) return;
+      fn.textContent = "저장하는 중…";
+      try {
+        await store.put("audio", r.id, { blob:f, name:f.name, type:f.type });
+        setUrl(r.id, f, f.name); setFn(); updateUsage();
+      } catch(err){ fn.textContent = "저장하지 못했어요 (용량 부족일 수 있어요)"; }
+      e.target.value = "";
+    };
+    el.querySelector('[data-a="play"]').onclick = ()=> toggle(r.id);
+    el.querySelector('[data-a="move"]').onclick = ()=> startPlacing(r.id);
+    el.querySelector('[data-a="clear"]').onclick = async ()=>{
+      if (current === r.id) stopAll();
+      await store.del("audio", r.id).catch(()=>{});
+      dropUrl(r.id); setFn(); updateUsage();
+    };
+    const del = el.querySelector('[data-a="delete"]');
+    del.onclick = async ()=>{
+      if (del.dataset.armed !== "1"){ del.dataset.armed = "1"; del.textContent = "한 번 더 누르면 삭제"; return; }
+      if (current === r.id) stopAll();
+      state.regions = state.regions.filter(x=> x.id !== r.id);
+      await store.del("audio", r.id).catch(()=>{});
+      dropUrl(r.id); buildPins(); renderList(); saveState(); updateUsage();
+    };
+    list.appendChild(el);
+  });
+}
+$("addRegion").onclick = ()=>{
+  const id = "r" + Date.now().toString(36);
+  state.regions.push({ id, name:"새 지역", lon:0, lat:0, label:"right", color: PALETTE[state.regions.length % PALETTE.length] });
+  buildPins(); renderList(); saveState();
+  startPlacing(id);
+};
+
+/* 지도에서 위치 지정 */
+let placing = null;
+function startPlacing(id){
+  placing = id; closePanel(); document.body.classList.add("placing");
+  toast(`지구본을 돌려서 ‘${state.regions.find(r=>r.id===id).name}’ 위치를 눌러 주세요 (취소: Esc)`);
+}
+function endPlacing(){ placing = null; document.body.classList.remove("placing"); openPanel(); }
+function placeAt(x, y){
+  const r0 = radius(), c = projection.translate();
+  if (Math.hypot(x - c[0], y - c[1]) > r0){ toast("지구본 위를 눌러 주세요"); return; }
+  const ll = projection.invert([x, y]);
+  const r = state.regions.find(q=> q.id === placing);
+  r.lon = +ll[0].toFixed(2); r.lat = +ll[1].toFixed(2);
+  placePins(); saveState(); endPlacing();
+}
+document.addEventListener("keydown", e=>{
+  if (e.key !== "Escape") return;
+  if (placing) endPlacing(); else if ($("panel").classList.contains("open")) closePanel(); else stopAll();
+});
+
+/* 음원 주소 관리 */
+function setUrl(id, blob, name){
+  dropUrl(id);
+  urls[id] = URL.createObjectURL(blob); fileNames[id] = name;
+  if (players[id]) players[id].src = urls[id];
+}
+function dropUrl(id){
+  if (urls[id]) URL.revokeObjectURL(urls[id]);
+  delete urls[id]; delete fileNames[id];
+  if (players[id]){ players[id].pause(); players[id].removeAttribute("src"); delete players[id]; }
+}
+async function updateUsage(){
+  try {
+    const e = await navigator.storage.estimate();
+    $("usage").textContent = `현재 사용량 약 ${(e.usage/1048576).toFixed(1)}MB.`;
+  } catch(err){}
+}
+
+/* ---------- 시작 ---------- */
+(async function main(){
+  try {
+    await store.open();
+    const saved = await store.get("kv","state");
+    if (saved && Array.isArray(saved.regions)) state = saved;
+    const keys = await store.keys("audio");
+    for (const k of keys){
+      const rec = await store.get("audio", k);
+      if (rec && rec.blob) setUrl(k, rec.blob, rec.name);
+    }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  } catch(e){ toast("이 브라우저에서는 음원을 저장할 수 없어요. 시크릿 창이 아닌 일반 창으로 열어 주세요."); }
+  renderHeader(); buildPins();
+  addEventListener("resize", draw);
+  draw(); loadWorld(); requestAnimationFrame(loop);
+})();
 </script>
 </body>
 </html>
