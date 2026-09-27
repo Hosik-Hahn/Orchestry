@@ -1,0 +1,105 @@
+{
+  "title": "세계의 아리랑",
+  "subtitle": "세계를 돌아다니며 세계의 아리랑을 들어보세요",
+  "loop": false,
+  "autoRotate": true,
+  "regions": [
+    {
+      "id": "mongolia",
+      "name": "몽골",
+      "lon": 103.8,
+      "lat": 46.9,
+      "label": "right",
+      "color": "#FFB400",
+      "desc": "ㅇㅇㅇ"
+    },
+    {
+      "id": "scotland",
+      "name": "스코틀랜드",
+      "lon": -4.2,
+      "lat": 56.8,
+      "label": "left",
+      "color": "#5FD4F4"
+    },
+    {
+      "id": "mexico",
+      "name": "멕시코",
+      "lon": -102.5,
+      "lat": 23.6,
+      "label": "left",
+      "color": "#FF8A3D"
+    },
+    {
+      "id": "france",
+      "name": "프랑스",
+      "lon": 2.2,
+      "lat": 46.6,
+      "label": "left",
+      "color": "#3D9BFF"
+    },
+    {
+      "id": "africa",
+      "name": "아프리카",
+      "lon": 20,
+      "lat": 3,
+      "label": "right",
+      "color": "#FF5E5B"
+    },
+    {
+      "id": "greece",
+      "name": "그리스",
+      "lon": 22,
+      "lat": 39.1,
+      "label": "below",
+      "color": "#8C8CFF"
+    },
+    {
+      "id": "hawaii",
+      "name": "하와이",
+      "lon": -156.5,
+      "lat": 20.3,
+      "label": "below",
+      "color": "#2EC27E"
+    },
+    {
+      "id": "brazil",
+      "name": "브라질",
+      "lon": -51.9,
+      "lat": -10.3,
+      "label": "right",
+      "color": "#9BE15D"
+    },
+    {
+      "id": "india",
+      "name": "인도",
+      "lon": 78.9,
+      "lat": 21,
+      "label": "right",
+      "color": "#FF8FC7"
+    },
+    {
+      "id": "turkey",
+      "name": "터키",
+      "lon": 35.2,
+      "lat": 39,
+      "label": "right",
+      "color": "#F2E14C"
+    },
+    {
+      "id": "usa",
+      "name": "미국",
+      "lon": -98.5,
+      "lat": 39.5,
+      "label": "right",
+      "color": "#C86BFA"
+    },
+    {
+      "id": "rmuje861f",
+      "name": "새 지역",
+      "lon": 51.55,
+      "lat": -8.46,
+      "label": "right",
+      "color": "#00C2A8"
+    }
+  ]
+}
