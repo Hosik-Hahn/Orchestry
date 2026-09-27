@@ -27,7 +27,7 @@ body{background:var(--space);color:var(--ink);font-family:var(--font);overflow:h
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
-#globe{position:absolute;inset:0}
+#globe{position:absolute;inset:0;z-index:0;isolation:isolate}
 header{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;padding:22px 28px;pointer-events:none;z-index:3;
   background:linear-gradient(to bottom, rgba(4,6,15,.75), transparent)}
 header h1{margin:0;font-size:clamp(22px,3vw,38px);font-weight:800;letter-spacing:-.03em;text-shadow:0 2px 20px rgba(0,0,0,.6)}
@@ -78,7 +78,7 @@ body.placing .pin{pointer-events:none}
 #info .play button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;flex:none}
 #info .play button:hover{background:var(--card2)}
 body.reading .hint{display:none}
-#plane{position:absolute;left:0;top:0;width:0;height:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .25s}
+#plane{position:absolute;left:0;top:0;width:0;height:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .25s}
 #plane.show{opacity:1}
 #plane svg{position:absolute;left:-17px;top:-17px;width:34px;height:34px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
 #master{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(620px,calc(100% - 420px));min-width:320px;
@@ -182,6 +182,8 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
     <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
     <label class="chk"><input type="checkbox" id="fLoop"> 곡이 끝나면 반복 재생</label>
     <label class="chk"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
+    <label class="fld" style="margin-top:10px"><span>출발 지역 (처음 화면과 첫 비행의 출발점)</span>
+      <select id="fStart" style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px"></select></label>
     <div class="sec"><span>전체 음원 (진행용 믹스)</span></div>
     <div class="rg">
       <div class="file"><span class="fn" id="mainFn"></span>
@@ -214,6 +216,8 @@ const DEFAULTS = {
   subtitle: "지구본을 돌려 지역을 누르면 그곳의 음악이 흘러나옵니다",
   loop: false,
   autoRotate: true,
+  startId: "korea",
+  koreaAdded: true,
   regions: [
     { id:"mongolia", name:"몽골",       lon: 103.8, lat: 46.9,  label:"right", color:"#FFB400" },
     { id:"scotland", name:"스코틀랜드", lon:  -4.2, lat: 56.8,  label:"left",  color:"#5FD4F4" },
@@ -225,7 +229,8 @@ const DEFAULTS = {
     { id:"brazil",   name:"브라질",     lon: -51.9, lat:-10.3,  label:"right", color:"#9BE15D" },
     { id:"india",    name:"인도",       lon:  78.9, lat: 21.0,  label:"right", color:"#FF8FC7" },
     { id:"turkey",   name:"터키",       lon:  35.2, lat: 39.0,  label:"right", color:"#F2E14C" },
-    { id:"usa",      name:"미국",       lon: -98.5, lat: 39.5,  label:"right", color:"#C86BFA" }
+    { id:"usa",      name:"미국",       lon: -98.5, lat: 39.5,  label:"right", color:"#C86BFA" },
+    { id:"korea",    name:"대한민국",   lon: 127.6, lat: 36.4,  label:"right", color:"#00C2A8" }
   ]
 };
 const FADE = 0.8;
@@ -268,6 +273,17 @@ const store = {
 let saveTimer;
 function saveState(){ if (VIEWER) return; clearTimeout(saveTimer); saveTimer = setTimeout(()=> store.put("kv","state",state).catch(()=> toast("설정을 저장하지 못했어요")), 250); }
 
+/* 예전에 저장된 설정에도 대한민국을 한 번 추가해 줘요 (직접 지운 뒤에는 다시 넣지 않아요) */
+function migrate(st){
+  if (!st.koreaAdded){
+    if (!st.regions.some(r=> r.id === "korea")) st.regions.push({ ...DEFAULTS.regions.find(r=> r.id === "korea") });
+    st.koreaAdded = true;
+    if (!st.startId) st.startId = "korea";
+  }
+  return st;
+}
+const startRegion = ()=> state.regions.find(r=> r.id === state.startId) || null;
+
 /* ---------- 3D 지구본 ---------- */
 let globe, idleTimer;
 function initGlobe(){
@@ -288,7 +304,9 @@ function initGlobe(){
   c.autoRotateSpeed = .35; c.enableDamping = true; c.minDistance = 130; c.maxDistance = 600;
   c.addEventListener("start", ()=>{ c.autoRotate = false; clearTimeout(idleTimer); following = false; });
   c.addEventListener("end", scheduleSpin);
-  globe.pointOfView({ lat: 25, lng: 20, altitude: 2.3 });
+  const st = startRegion();
+  lastStop = st;
+  globe.pointOfView(st ? { lat: st.lat, lng: st.lon, altitude: 2.3 } : { lat: 25, lng: 20, altitude: 2.3 });
   fit(); addEventListener("resize", fit);
   scheduleSpin();
 }
@@ -310,7 +328,7 @@ function slerp(p, q, t, w){
   const a = Math.sin((1-t)*d)/Math.sin(d), b = Math.sin(t*d)/Math.sin(d);
   return [a*p[0]+b*q[0], a*p[1]+b*q[1], a*p[2]+b*q[2]];
 }
-let flight = null, lastStop = null, following = false;
+let flight = null, lastStop = null, following = false, hideTimer = 0, trailTimer = 0;
 function flyTo(r, onArrive){
   const c = globe.controls(); c.autoRotate = false; clearTimeout(idleTimer);
   const pov = globe.pointOfView();
@@ -324,6 +342,7 @@ function flyTo(r, onArrive){
   const pts = [];
   for (let k=0; k<=60; k++){ const t = k/60, ll = toLL(slerp(P, Q, t)); pts.push([ll[0], ll[1], .01 + peak*Math.sin(Math.PI*t)]); }
   globe.pathTransitionDuration(dur).pathsData([{ pts }]);
+  clearTimeout(hideTimer); clearTimeout(trailTimer);
   flight = { P, Q, peak, dur, t0: performance.now(), baseAlt, ang, onArrive };
   following = true;
   $("plane").classList.add("show");
@@ -340,16 +359,18 @@ function flightFrame(now){
   }
   const a = globe.getScreenCoords(ll[0], ll[1], alt), b = globe.getScreenCoords(ll2[0], ll2[1], alt2);
   const pov = globe.pointOfView(), cv = toVec(pov.lat, pov.lng), pv = toVec(ll[0], ll[1]);
-  const visible = (cv[0]*pv[0]+cv[1]*pv[1]+cv[2]*pv[2]) * (1+alt) > 1/(1+pov.altitude);
+  // 지구 뒤편으로 확실히 넘어갔을 때만 숨겨요
+  const visible = following || (cv[0]*pv[0]+cv[1]*pv[1]+cv[2]*pv[2]) * (1+alt) > 1/(1+pov.altitude) - .08;
   const heading = raw >= 1 ? (flight.heading || 0) : deg(Math.atan2(b.y - a.y, b.x - a.x));
   flight.heading = heading;
   const el = $("plane");
+  if (!a || !isFinite(a.x) || !isFinite(a.y)) return;
   el.style.transform = `translate(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px) rotate(${heading.toFixed(1)}deg) scale(${(1 + alt*1.2).toFixed(3)})`;
   el.style.visibility = visible ? "visible" : "hidden";
   if (raw >= 1){
     const done = f.onArrive; flight = null; following = false;
-    setTimeout(()=> $("plane").classList.remove("show"), 900);
-    setTimeout(()=>{ if (!flight) globe.pathsData([]); }, 4000);
+    hideTimer = setTimeout(()=>{ if (!flight) $("plane").classList.remove("show"); }, 900);
+    trailTimer = setTimeout(()=>{ if (!flight) globe.pathsData([]); }, 4000);
     done && done();
   }
 }
@@ -562,7 +583,7 @@ function openPanel(){
   if (VIEWER) return;
   $("fTitle").value = state.title; $("fSub").value = state.subtitle;
   $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
-  renderList(); renderMainAdmin(); $("panel").classList.add("open"); updateUsage();
+  renderList(); renderMainAdmin(); renderStartSelect(); $("panel").classList.add("open"); updateUsage();
 }
 function closePanel(){ $("panel").classList.remove("open"); }
 $("adminBtn").onclick = openPanel;
@@ -570,6 +591,16 @@ $("closePanel").onclick = closePanel;
 $("fTitle").oninput = e=>{ state.title = e.target.value; renderHeader(); saveState(); };
 $("fSub").oninput = e=>{ state.subtitle = e.target.value; renderHeader(); saveState(); };
 $("fLoop").onchange = e=>{ state.loop = e.target.checked; Object.values(players).forEach(a=> a.loop = state.loop); saveState(); };
+$("fStart").onchange = e=>{
+  state.startId = e.target.value; saveState();
+  const st = startRegion(); lastStop = st;
+  if (st) globe.pointOfView({ lat: st.lat, lng: st.lon }, 1200);
+};
+function renderStartSelect(){
+  const sel = $("fStart"); sel.innerHTML = "";
+  state.regions.forEach(r=>{ const o = document.createElement("option"); o.value = r.id; o.textContent = r.name; sel.appendChild(o); });
+  sel.value = startRegion() ? state.startId : (state.regions[0]?.id || "");
+}
 $("fSpin").onchange = e=>{ state.autoRotate = e.target.checked; if (!e.target.checked) globe.controls().autoRotate = false; else scheduleSpin(); saveState(); };
 
 function renderList(){
@@ -732,14 +763,14 @@ async function updateUsage(){
   // 1) GitHub에 올린 regions.json이 있으면 기본값으로 사용
   try {
     const res = await fetch("regions.json", { cache:"no-store" });
-    if (res.ok){ const j = await res.json(); if (Array.isArray(j.regions)) state = { ...DEFAULTS, ...j }; }
+    if (res.ok){ const j = await res.json(); if (Array.isArray(j.regions)) state = migrate({ ...DEFAULTS, ...j, koreaAdded: j.koreaAdded }); }
   } catch(e){}
   // 2) 진행자 컴퓨터라면 이 브라우저에 저장된 설정과 음원을 우선 사용
   if (!VIEWER){
     try {
       await store.open();
       const saved = await store.get("kv","state");
-      if (saved && Array.isArray(saved.regions)) state = saved;
+      if (saved && Array.isArray(saved.regions)){ state = migrate(saved); saveState(); }
       for (const k of await store.keys("images")){
         const rec = await store.get("images", k);
         if (rec && rec.blob) imgUrls[k] = URL.createObjectURL(rec.blob);
