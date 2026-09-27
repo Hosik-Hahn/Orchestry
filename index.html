@@ -171,6 +171,11 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
       <p class="note" style="margin:0 0 10px">관객 휴대폰에는 GitHub에 올린 내용만 보여요. 설명·이름·위치를 바꿨다면 아래 파일을 받아 index.html 옆에 올리고, 음원과 이미지는 각 지역에 적힌 이름대로 <code>audio</code>·<code>images</code> 폴더에 올려 주세요.</p>
       <button class="pbtn" id="exportBtn">regions.json 받기</button>
     </div>
+    <div class="box">
+      <h3>GitHub 버전으로 전환하기</h3>
+      <p class="note" style="margin:0 0 10px">이 컴퓨터에 저장된 설정·음원·이미지가 GitHub 파일보다 우선해요. 모든 파일을 GitHub에 올린 뒤 이 버튼을 누르면, 이 컴퓨터도 관객과 똑같이 GitHub 내용을 쓰게 돼요.</p>
+      <button class="pbtn danger" id="wipeBtn">이 컴퓨터에 저장된 내용 지우기</button>
+    </div>
   </div>
 </aside>
 
@@ -206,7 +211,7 @@ if (VIEWER) document.body.classList.add("viewer");
 const $ = id => document.getElementById(id);
 let state = structuredClone(DEFAULTS);
 const fileNames = {}, urls = {}, imgUrls = {};
-const repoFile = id => `audio/${id}.mp3`;
+const repoFile = id => (state.regions.find(r=>r.id===id)?.audio) || `audio/${id}.mp3`;
 
 /* ---------- 브라우저 저장소 (진행자 컴퓨터 전용) ---------- */
 const store = {
@@ -477,7 +482,12 @@ function renderList(){
     el.querySelector('.file input[type=file]').onchange = async e=>{
       const f = e.target.files[0]; if (!f) return;
       fn.textContent = "저장하는 중…";
-      try { await store.put("audio", r.id, { blob:f, name:f.name }); setUrl(r.id, f, f.name); setFn(); updateUsage(); }
+      try {
+        await store.put("audio", r.id, { blob:f, name:f.name }); setUrl(r.id, f, f.name);
+        const ext = (f.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g,"") || "mp3";
+        r.audio = `audio/${r.id}.${ext}`; el.querySelector(".gh .ga").textContent = r.audio; saveState();
+        setFn(); updateUsage();
+      }
       catch(err){ fn.textContent = "저장하지 못했어요 (용량 부족일 수 있어요)"; }
       e.target.value = "";
     };
@@ -512,6 +522,15 @@ $("exportBtn").onclick = ()=>{
   const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "regions.json";
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
+};
+
+$("wipeBtn").onclick = async ()=>{
+  const b = $("wipeBtn");
+  if (b.dataset.armed !== "1"){ b.dataset.armed = "1"; b.textContent = "먼저 regions.json을 받아 두셨나요? 한 번 더 누르면 지워져요"; return; }
+  stopAll();
+  try { store.db && store.db.close(); } catch(e){}
+  const req = indexedDB.deleteDatabase("world-sounds");
+  req.onsuccess = req.onerror = req.onblocked = ()=> location.reload();
 };
 
 /* 지구본에서 위치 지정 */
