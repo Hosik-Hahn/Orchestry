@@ -239,9 +239,14 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
       <label class="fld" style="margin-top:14px"><span>출발 지역 (처음 화면, 0:00의 비행기 위치)</span>
         <select id="fStart" style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px"></select></label>
       <label class="chk"><input type="checkbox" id="fAuto"> 음원 시간에 맞춰 비행기 자동 이동</label>
+      <label class="fld" style="margin-top:10px"><span>비행 속도</span>
+        <select id="fSpeed" style="width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid var(--line);background:#141A3A;color:var(--ink);font:inherit;font-size:14px">
+          <option value="1.6">아주 천천히</option><option value="1.25">천천히</option><option value="1">보통</option><option value="0.7">빠르게</option>
+        </select></label>
+      <p class="note" id="speedNote" style="margin:-4px 0 0"></p>
       <div class="sec"><span id="routeCnt">이동</span><button class="pbtn primary" id="addMove">+ 이동 추가</button></div>
       <div id="route"></div>
-      <p class="note">음원을 틀어 놓고 원하는 순간에 "+ 이동 추가"를 누르면 그 시각이 들어가요. 같은 지역을 여러 번 넣어도 되고, 시간순으로 자동 정렬돼요. 비행에 1.5~4초가 걸리니 도착 시점에 맞추려면 조금 일찍 잡아 주세요. 스페이스바로 재생/일시정지할 수 있어요.</p>
+      <p class="note">음원을 틀어 놓고 원하는 순간에 "+ 이동 추가"를 누르면 그 시각이 들어가요. 같은 지역을 여러 번 넣어도 되고, 시간순으로 자동 정렬돼요. 비행 시간은 위 "비행 속도"에 적힌 만큼 걸리니, 도착 시점에 맞추려면 그만큼 일찍 잡아 주세요. 스페이스바로 재생/일시정지할 수 있어요.</p>
     </section>
   </div>
 </aside>
@@ -254,6 +259,7 @@ const DEFAULTS = {
   loop: false,
   autoRotate: true,
   autoFly: true,
+  flightSpeed: 1,
   route: [],
   startId: "korea",
   koreaAdded: true,
@@ -326,6 +332,12 @@ function migrate(st){
   return st;
 }
 const startRegion = ()=> state.regions.find(r=> r.id === state.startId) || null;
+/* 출발 지역의 설명 카드를 열어요 (처음 화면, 처음으로 되감았을 때) */
+function showStart(){
+  const st = startRegion(); if (!st || flight) return;
+  if (!VIEWER){ Object.values(pinEls).forEach(p=> p.classList.remove("on")); pinEls[st.id]?.classList.add("on"); }
+  showInfo(st);
+}
 
 /* ---------- 3D 지구본 ---------- */
 let globe, idleTimer;
@@ -340,7 +352,7 @@ function initGlobe(){
     .htmlTransitionDuration(0)
     .htmlElement(r => pinEl(r))
     .onGlobeClick(({lat, lng}) => { if (placing) placeAt(lat, lng); })
-    .onGlobeReady(()=> $("loading").remove())
+    .onGlobeReady(()=>{ $("loading").remove(); setTimeout(showStart, 600); })
     .pathsData([]).pathPoints("pts").pathPointLat(p=>p[0]).pathPointLng(p=>p[1]).pathPointAlt(p=>p[2])
     .pathColor(()=> ["rgba(255,255,255,0.25)", "rgba(255,255,255,0.95)"]).pathStroke(null).pathResolution(1);
   const c = globe.controls();
@@ -371,6 +383,8 @@ function slerp(p, q, t, w){
   const a = Math.sin((1-t)*d)/Math.sin(d), b = Math.sin(t*d)/Math.sin(d);
   return [a*p[0]+b*q[0], a*p[1]+b*q[1], a*p[2]+b*q[2]];
 }
+const speed = ()=> Math.max(.4, Math.min(2.5, +state.flightSpeed || 1));
+const flightMs = ang => (2600 + ang * 1800) * speed();   // 보통: 가까운 곳 약 3초, 지구 반대편 약 8초
 let flight = null, lastStop = null, following = false, hideTimer = 0, trailTimer = 0;
 function flyTo(r, onArrive){
   const c = globe.controls(); c.autoRotate = false; clearTimeout(idleTimer);
@@ -380,7 +394,7 @@ function flyTo(r, onArrive){
   const ang = Math.acos(Math.max(-1, Math.min(1, P[0]*Q[0]+P[1]*Q[1]+P[2]*Q[2])));
   lastStop = r;
   if (ang < .02){ globe.pointOfView({ lat:r.lat, lng:r.lon }, 800); onArrive && onArrive(); return; }
-  const dur = 1400 + ang * 900, peak = Math.min(.32, .05 + ang/Math.PI*.45);
+  const dur = flightMs(ang), peak = Math.min(.32, .05 + ang/Math.PI*.45);
   const baseAlt = Math.min(pov.altitude, 2.2);
   const pts = [];
   for (let k=0; k<=60; k++){ const t = k/60, ll = toLL(slerp(P, Q, t)); pts.push([ll[0], ll[1], .01 + peak*Math.sin(Math.PI*t)]); }
@@ -541,7 +555,7 @@ function hideInfo(){ if (!VIEWER) Object.values(pinEls).forEach(p=> p.classList.
 function setPlayUI(playing, missing){
   const box = $("info");
   box.querySelector(".play").style.display = (missing && !playing) ? "none" : "";
-  $("pauseBtn").textContent = playing ? "일시정지" : "다시 듣기";
+  $("pauseBtn").textContent = playing ? "일시정지" : "▶ 듣기";
 }
 $("closeInfo").onclick = ()=>{ stopAll(); hideInfo(); };
 const fmt = s => isFinite(s) ? `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}` : "0:00";
@@ -641,7 +655,7 @@ function cueSync(fly){
   if (hit) onPin(hit.to);
   else {
     const st = startRegion();   // 첫 이동보다 앞으로 되감으면 출발 지역으로 돌아가요
-    if (st && lastStop && lastStop.id !== st.id){ hideInfo(); flyTo(st); }
+    if (st && lastStop && lastStop.id !== st.id){ hideInfo(); flyTo(st, ()=> showStart()); }
   }
 }
 function renderCues(){
@@ -701,6 +715,13 @@ $("addMove").onclick = ()=>{
   state.route.push({ id: "m" + Date.now().toString(36), time: t, to: next.id });
   routeChanged();
 };
+function renderSpeed(){
+  const v = String(speed()), sel = $("fSpeed");
+  sel.value = [...sel.options].some(o=> o.value === v) ? v : "1";
+  const near = Math.round(flightMs(.3)/1000), far = Math.round(flightMs(Math.PI)/1000);
+  $("speedNote").textContent = `가까운 곳 약 ${near}초, 먼 곳 최대 약 ${far}초`;
+}
+$("fSpeed").onchange = e=>{ state.flightSpeed = +e.target.value; saveState(); renderSpeed(); };
 $("fAuto").onchange = e=>{ state.autoFly = e.target.checked; saveState(); renderAuto(); cueId = undefined; if (state.autoFly && !master.paused) cueSync(true); };
 
 function renderAuto(){
@@ -735,7 +756,7 @@ function openPanel(){
   if (VIEWER) return;
   $("fTitle").value = state.title; $("fSub").value = state.subtitle;
   $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
-  renderList(); renderMainAdmin(); renderStartSelect(); renderRoute(); $("fAuto").checked = state.autoFly !== false; $("panel").classList.add("open"); updateUsage();
+  renderList(); renderMainAdmin(); renderStartSelect(); renderRoute(); renderSpeed(); $("fAuto").checked = state.autoFly !== false; $("panel").classList.add("open"); updateUsage();
 }
 function closePanel(){ $("panel").classList.remove("open"); }
 document.querySelectorAll(".tabs button").forEach(b=> b.onclick = ()=> showTab(b.dataset.tab));
