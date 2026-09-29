@@ -216,6 +216,11 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
         <button class="pbtn" id="exportBtn">regions.json 받기</button>
       </div>
       <div class="box">
+        <h3>JSON 파일 불러오기</h3>
+        <p class="note" style="margin:0 0 10px">따로 정리해 둔 JSON(나라 설명·음악 특징)이나 예전에 받은 regions.json을 불러와 반영해요. 이름이 같은 지역은 설명만 바뀌고, 위치·색·음원·이미지는 그대로 유지돼요.</p>
+        <label class="pbtn">JSON 불러오기<input type="file" accept=".json,application/json" hidden id="importFile"></label>
+      </div>
+      <div class="box">
         <h3>GitHub 버전으로 전환하기</h3>
         <p class="note" style="margin:0 0 10px">이 컴퓨터에 저장된 설정·음원·이미지가 GitHub 파일보다 우선해요. 모든 파일을 GitHub에 올린 뒤 이 버튼을 누르면, 이 컴퓨터도 관객과 똑같이 GitHub 내용을 쓰게 돼요.</p>
         <button class="pbtn danger" id="wipeBtn">이 컴퓨터에 저장된 내용 지우기</button>
@@ -531,6 +536,17 @@ async function toggle(id, deferInfo){
 function stopAll(){ if (current) stopOne(current); endCurrent(); }
 function endCurrent(){ current = null; setPlayUI(false); scheduleSpin(); }
 function imgSrc(r){ return imgUrls[r.id] || r.img || ""; }
+const IMG_EXT = ["png","jpg","jpeg","webp","PNG","JPG","JPEG"];
+function imgCandidates(r){
+  const out = [];
+  if (imgUrls[r.id]) out.push(imgUrls[r.id]);
+  if (r.img) out.push(r.img);
+  // 맥에서 만든 한글 파일 이름은 글자 조합 방식이 달라서(NFD) 두 가지로 모두 찾아봐요
+  const names = [...new Set([r.name.normalize("NFC"), r.name.normalize("NFD")])];
+  for (const n of names) for (const e of IMG_EXT) out.push(`images/${encodeURIComponent(n)}.${e}`);
+  for (const e of IMG_EXT) out.push(`images/${r.id}.${e}`);
+  return [...new Set(out)];
+}
 function showInfo(r){
   shown = r.id; setActivePin(r.id);
   setPlayUI(!!(current === r.id && players[r.id] && !players[r.id].paused), (!VIEWER && current !== r.id) || missing.has(r.id));
@@ -538,11 +554,20 @@ function showInfo(r){
   box.style.setProperty("--c", r.color);
   box.querySelector(".nm").textContent = r.name;
   box.querySelector(".desc").textContent = r.desc || "";
-  const src = imgSrc(r);
-  pic.onerror = ()=> pic.classList.add("none");
-  pic.classList.toggle("none", !src);
-  pic.alt = src ? `${r.name} 대표 이미지` : "";
-  if (src) pic.src = src; else pic.removeAttribute("src");
+  // 이미지 찾는 순서: 이 컴퓨터에 넣은 이미지 → 지정된 파일 → images/한글이름.png(.jpg 등) → images/영문id.png(.jpg 등)
+  const list = imgCandidates(r), token = {};
+  pic._token = token;
+  let k = 0;
+  const tryNext = ()=>{
+    if (pic._token !== token) return;
+    if (k >= list.length){ pic.classList.add("none"); pic.removeAttribute("src"); return; }
+    pic.src = list[k++];
+  };
+  pic.onerror = tryNext;
+  pic.onload = ()=>{ if (pic._token === token) pic.classList.remove("none"); };
+  pic.classList.add("none");
+  pic.alt = `${r.name} 대표 이미지`;
+  tryNext();
   box.querySelector(".body").scrollTop = 0;
   box.querySelector(".bar i").style.width = "0%";
   box.classList.add("show"); document.body.classList.add("reading");
@@ -890,6 +915,56 @@ $("addRegion").onclick = ()=>{
   buildPins(); renderList(); saveState();
   startPlacing(id);
 };
+/* ---------- JSON 불러오기 ---------- */
+// 새로 들어오는 나라의 위치 (없으면 지구본 정면에 두고 '위치 옮기기'로 옮겨요)
+const KNOWN_PLACES = {
+  mongolia:[103.8,46.9], scotland:[-4.2,56.8], mexico:[-102.5,23.6], france:[2.2,46.6], africa:[20,3], greece:[22,39.1],
+  hawaii:[-156.5,20.3], brazil:[-51.9,-10.3], india:[78.9,21], turkey:[35.2,39], usa:[-98.5,39.5], united_states:[-98.5,39.5],
+  korea:[127.6,36.4], south_korea:[127.6,36.4], guinea:[-10.9,10.4], united_kingdom:[-1.6,52.6], uk:[-1.6,52.6],
+  japan:[138.3,36.2], china:[104.2,35.9], spain:[-3.7,40.4], italy:[12.6,42.8], germany:[10.4,51.2], ireland:[-8.2,53.4],
+  argentina:[-63.6,-38.4], cuba:[-79.5,21.5], jamaica:[-77.3,18.1], egypt:[30.8,26.8], nigeria:[8.7,9.1], mali:[-3.9,17.6],
+  indonesia:[113.9,-0.8], australia:[134.5,-25.7], russia:[90,61.5], iran:[53.7,32.4], peru:[-75,-9.2], ghana:[-1,7.9], senegal:[-14.5,14.5]
+};
+function countryText(c){
+  let t = (c.description || "").trim();
+  const f = Array.isArray(c.musicFeatures) ? c.musicFeatures.filter(Boolean) : [];
+  if (f.length) t += (t ? "\n\n" : "") + "음악의 특징\n" + f.map(x=> "• " + x).join("\n");
+  return t;
+}
+async function importJson(obj){
+  let added = 0, updated = 0;
+  if (Array.isArray(obj.countries)){
+    for (const c of obj.countries){
+      if (!c || !c.name) continue;
+      const cid = String(c.id || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+      let r = state.regions.find(x=> x.id === cid) || state.regions.find(x=> x.name === c.name);
+      if (r){ r.name = c.name; r.desc = countryText(c); updated++; }
+      else {
+        const pos = KNOWN_PLACES[cid], pov = globe.pointOfView();
+        state.regions.push({ id: cid || ("region" + Date.now() % 100000 + added), name: c.name,
+          lon: pos ? pos[0] : +pov.lng.toFixed(2), lat: pos ? pos[1] : +pov.lat.toFixed(2),
+          label: "right", color: PALETTE[state.regions.length % PALETTE.length], desc: countryText(c) });
+        added++;
+        if (!pos) toast(`‘${c.name}’은 위치를 몰라서 지구본 정면에 두었어요. 지역 탭에서 '위치 옮기기'로 옮겨 주세요.`);
+      }
+    }
+  } else if (Array.isArray(obj.regions)){
+    state = migrate({ ...DEFAULTS, ...obj, koreaAdded: obj.koreaAdded, route: obj.route });
+    updated = state.regions.length;
+  } else throw new Error("format");
+  saveState(); buildPins(); renderHeader(); openPanel();
+  if (shown){ const r = state.regions.find(x=> x.id === shown); r ? showInfo(r) : hideInfo(); }
+  return { added, updated };
+}
+$("importFile").onchange = async e=>{
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const res = await importJson(JSON.parse(await f.text()));
+    toast(`불러왔어요 · 설명 반영 ${res.updated}곳${res.added ? `, 새 지역 ${res.added}곳 추가` : ""}`);
+  } catch(err){ toast("이 JSON은 읽을 수 없어요. 형식을 확인해 주세요."); }
+  e.target.value = "";
+};
+
 $("exportBtn").onclick = ()=>{
   const blob = new Blob([JSON.stringify(state, null, 2)], { type:"application/json" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "regions.json";
