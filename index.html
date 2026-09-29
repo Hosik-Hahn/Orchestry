@@ -490,7 +490,37 @@ function onPin(id){
 const players = {};
 let current = null;
 const fades = new Map();
-function srcFor(id){ return urls[id] || repoFile(id); }
+function srcFor(id){ return urls[id] || resolved[id] || repoFile(id); }
+
+/* GitHub에 올린 음원을 찾아 둬요: audio/Audio 폴더, 영문 id·한글 이름, 여러 확장자 */
+const resolved = {};
+const AUD_EXT = ["mp3","wav","m4a","MP3","WAV","M4A","aac","ogg"];
+function audioCandidates(id, name, explicit){
+  const out = [];
+  if (explicit){ out.push(explicit); out.push(explicit.replace(/^audio\//, "Audio/")); }
+  const names = [id];
+  if (name) names.push(...new Set([name.normalize("NFC"), name.normalize("NFD")]));
+  for (const d of ["audio","Audio"]) for (const n of names) for (const e of AUD_EXT) out.push(`${d}/${encodeURIComponent(n)}.${e}`);
+  return [...new Set(out)];
+}
+async function firstOk(list){
+  for (const u of list){
+    try { const res = await fetch(u, { method:"HEAD", cache:"no-store" }); if (res.ok) return u; } catch(e){}
+  }
+  return null;
+}
+async function resolveAudio(){
+  const jobs = state.regions.map(async r=>{
+    if (urls[r.id]) return;
+    const hit = await firstOk(audioCandidates(r.id, r.name, r.audio));
+    if (hit) resolved[r.id] = hit;
+  });
+  if (!VIEWER && !urls[MAIN]) jobs.push((async ()=>{
+    const hit = await firstOk(audioCandidates("main", null, state.mainAudio));
+    if (hit){ resolved[MAIN] = hit; loadMaster(); }
+  })());
+  await Promise.all(jobs);
+}
 function player(id){
   if (!players[id]){
     const a = new Audio(); a.preload = "auto";
@@ -543,8 +573,10 @@ function imgCandidates(r){
   if (r.img) out.push(r.img);
   // 맥에서 만든 한글 파일 이름은 글자 조합 방식이 달라서(NFD) 두 가지로 모두 찾아봐요
   const names = [...new Set([r.name.normalize("NFC"), r.name.normalize("NFD")])];
-  for (const n of names) for (const e of IMG_EXT) out.push(`images/${encodeURIComponent(n)}.${e}`);
-  for (const e of IMG_EXT) out.push(`images/${r.id}.${e}`);
+  for (const d of ["images","Images","image","Image"]){
+    for (const n of names) for (const e of IMG_EXT) out.push(`${d}/${encodeURIComponent(n)}.${e}`);
+    for (const e of IMG_EXT) out.push(`${d}/${r.id}.${e}`);
+  }
   return [...new Set(out)];
 }
 function showInfo(r){
@@ -606,7 +638,7 @@ function fmtS(s){
 }
 function loadMaster(){
   if (VIEWER) return;
-  const want = new URL(urls[MAIN] || mainPath(), location.href).href;
+  const want = new URL(urls[MAIN] || resolved[MAIN] || mainPath(), location.href).href;
   if (master.src !== want){ master.src = want; master.load(); }
 }
 let seeking = false;
@@ -952,7 +984,7 @@ async function importJson(obj){
     state = migrate({ ...DEFAULTS, ...obj, koreaAdded: obj.koreaAdded, route: obj.route });
     updated = state.regions.length;
   } else throw new Error("format");
-  saveState(); buildPins(); renderHeader(); openPanel();
+  saveState(); buildPins(); renderHeader(); openPanel(); resolveAudio();
   if (shown){ const r = state.regions.find(x=> x.id === shown); r ? showInfo(r) : hideInfo(); }
   return { added, updated };
 }
@@ -1036,6 +1068,7 @@ async function updateUsage(){
     } catch(e){ toast("이 브라우저에서는 음원을 저장할 수 없어요. 시크릿 창이 아닌 일반 창으로 열어 주세요."); }
   }
   renderHeader(); renderQR(); loadMaster(); renderMaster(); renderAuto();
+  resolveAudio();
   if (typeof Globe !== "function"){ $("loading").textContent = "지구본을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요."; return; }
   initGlobe(); buildPins();
 })();
