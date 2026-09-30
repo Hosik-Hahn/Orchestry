@@ -5,7 +5,53 @@
   "autoRotate": true,
   "autoFly": true,
   "flightSpeed": 1,
-  "route": [],
+  "route": [
+    {
+      "id": "mmunzlwpp",
+      "time": 35,
+      "to": "mongolia"
+    },
+    {
+      "id": "mmunzm065",
+      "time": 85,
+      "to": "india"
+    },
+    {
+      "id": "mmunzm8xt",
+      "time": 120,
+      "to": "united_kingdom"
+    },
+    {
+      "id": "mmunzmffv",
+      "time": 160,
+      "to": "scotland"
+    },
+    {
+      "id": "mmunzmn95",
+      "time": 260,
+      "to": "brazil"
+    },
+    {
+      "id": "mmunzmunb",
+      "time": 200,
+      "to": "guinea"
+    },
+    {
+      "id": "mmunznaq9",
+      "time": 320,
+      "to": "usa"
+    },
+    {
+      "id": "mmunzngri",
+      "time": 375,
+      "to": "hawaii"
+    },
+    {
+      "id": "mmunznoqc",
+      "time": 422,
+      "to": "korea"
+    }
+  ],
   "startId": "korea",
   "koreaAdded": true,
   "mainAudio": "Audio/세계의 아리랑.mp3",
