@@ -8,47 +8,47 @@
   "route": [
     {
       "id": "mmunzlwpp",
-      "time": 36,
+      "time": 34,
       "to": "mongolia"
     },
     {
       "id": "mmunzm065",
-      "time": 86,
+      "time": 82,
       "to": "india"
     },
     {
       "id": "mmunzm8xt",
-      "time": 121,
+      "time": 118,
       "to": "united_kingdom"
     },
     {
       "id": "mmunzmffv",
-      "time": 161,
+      "time": 159,
       "to": "scotland"
     },
     {
       "id": "mmunzmunb",
-      "time": 201,
+      "time": 199,
       "to": "guinea"
     },
     {
       "id": "mmunzmn95",
-      "time": 261,
+      "time": 262,
       "to": "brazil"
     },
     {
       "id": "mmunznaq9",
-      "time": 321,
+      "time": 320,
       "to": "usa"
     },
     {
       "id": "mmunzngri",
-      "time": 376,
+      "time": 375,
       "to": "hawaii"
     },
     {
       "id": "mmunznoqc",
-      "time": 423,
+      "time": 425,
       "to": "korea"
     }
   ],
