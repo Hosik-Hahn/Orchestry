@@ -60,18 +60,19 @@ body.placing .pin{pointer-events:none}
 #qrbox img,#qrbox canvas{width:132px!important;height:132px!important;display:block}
 #qr p{margin:8px 0 0;font-weight:800;font-size:13px}
 
-#info{position:absolute;left:24px;top:calc(clamp(120px, 10.5vw, 190px) + env(safe-area-inset-top,0px));width:min(clamp(400px, 36vw, 640px),calc(100% - 48px));max-height:calc(100% - clamp(120px, 10.5vw, 190px) - 110px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+#info{position:absolute;left:24px;top:calc(clamp(120px, 10.5vw, 190px) + env(safe-area-inset-top,0px));width:min(clamp(380px, 31vw, 560px),calc(100% - 48px));max-height:calc(100% - clamp(120px, 10.5vw, 190px) - 110px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
   display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:4;opacity:0;transform:translateX(-16px);pointer-events:none;transition:opacity .3s,transform .3s}
 #info.show{opacity:1;transform:none;pointer-events:auto}
-#info .pic{width:100%;aspect-ratio:16/9;max-height:38vh;object-fit:cover;display:block;flex:none;background:#0A0E22}
+#info .pic{width:100%;aspect-ratio:16/9;max-height:calc(32vh * var(--k,1));object-fit:cover;display:block;flex:none;background:#0A0E22}
 #info .pic.none{display:none}
-#info .body{padding:clamp(18px,1.6vw,28px) clamp(20px,1.8vw,32px) 10px;overflow:auto;flex:1 1 auto;min-height:0}
-#info h2{margin:0;font-size:clamp(26px,2.6vw,44px);font-weight:800;letter-spacing:-.025em;line-height:1.15;display:flex;align-items:center;gap:clamp(10px,1vw,16px);padding-right:34px}
+#info .body{padding:calc(clamp(16px,1.4vw,24px) * var(--k,1)) clamp(18px,1.6vw,28px) 8px;overflow:auto;flex:1 1 auto;min-height:0}
+#info h2{margin:0;font-size:calc(clamp(24px,2.3vw,38px) * var(--k,1));font-weight:800;letter-spacing:-.025em;line-height:1.15;display:flex;align-items:center;gap:clamp(10px,1vw,16px);padding-right:34px}
 #info h2 .sw{width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 12px var(--c);flex:none}
-#info h2 .sw.flag{width:clamp(36px,3.4vw,58px);height:clamp(27px,2.55vw,43px);border-radius:4px;background:var(--flag) center/cover no-repeat;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 2px 8px rgba(0,0,0,.4)}
-#info .desc{margin:clamp(12px,1.1vw,20px) 0 6px;line-height:1.75;font-size:clamp(16px,1.35vw,23px);color:#DCE1F5;white-space:pre-wrap;word-break:keep-all}
+#info h2 .sw.flag{width:calc(clamp(34px,3vw,50px) * var(--k,1));height:calc(clamp(25px,2.25vw,37px) * var(--k,1));border-radius:4px;background:var(--flag) center/cover no-repeat;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#info .desc{margin:calc(clamp(10px,1vw,18px) * var(--k,1)) 0 4px;line-height:calc(1.45 + .2 * var(--k,1));font-size:calc(clamp(15px,1.2vw,20px) * var(--k,1));color:#DCE1F5;white-space:pre-wrap;word-break:keep-all}
 #info .desc:empty{display:none}
+body:not(.viewer) #info .body{overflow:hidden}
 #info .x{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(4,6,15,.6);font-size:18px;line-height:1;z-index:1}
 #info .play{flex:none;padding:14px clamp(20px,1.8vw,32px) 18px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
 #info .play .meta{flex:1;min-width:0}
@@ -836,16 +837,27 @@ function showInfo(r){
     pic.src = list[k++];
   };
   pic.onerror = tryNext;
-  pic.onload = ()=>{ if (pic._token === token) pic.classList.remove("none"); };
+  pic.onload = ()=>{ if (pic._token === token){ pic.classList.remove("none"); fitInfo(); } };
   pic.classList.add("none");
   pic.alt = `${r.name} 대표 이미지`;
   tryNext();
   box.querySelector(".body").scrollTop = 0;
   box.querySelector(".bar i").style.width = "0%";
   box.classList.add("show"); document.body.classList.add("reading");
+  fitInfo();
 }
 /* 파동은 지금 설명이 열려 있는(도착한) 지역에 표시돼요 */
 function setActivePin(id){ Object.entries(pinEls).forEach(([k, p])=> p.classList.toggle("on", k === id)); }
+/* 진행자 화면: 스크롤 없이 카드에 다 들어가도록 글씨와 사진 크기를 자동으로 맞춰요 */
+function fitInfo(){
+  if (VIEWER) return;
+  const box = $("info"), body = box.querySelector(".body");
+  let k = 1; box.style.setProperty("--k", 1);
+  while (body.scrollHeight > body.clientHeight + 1 && k > .5){
+    k = +(k - .04).toFixed(2); box.style.setProperty("--k", k);
+  }
+}
+addEventListener("resize", ()=>{ if (shown) fitInfo(); });
 function hideInfo(){ setActivePin(null); shown = null; $("info").classList.remove("show"); document.body.classList.remove("reading"); }
 function setPlayUI(playing, missing){
   const box = $("info");
@@ -1146,7 +1158,7 @@ function renderList(){
     fin.value = flagCode(r); setFlagPrev();
     fin.onchange = ()=>{ r.flag = fin.value.trim().toLowerCase(); setFlagPrev(); buildPins(); saveState(); if (shown === r.id) showInfo(r); };
     const ta = el.querySelector("textarea"); ta.value = r.desc || "";
-    ta.oninput = ()=>{ r.desc = ta.value; if (shown === r.id) $("info").querySelector(".desc").textContent = r.desc; saveState(); };
+    ta.oninput = ()=>{ r.desc = ta.value; if (shown === r.id){ $("info").querySelector(".desc").textContent = r.desc; fitInfo(); } saveState(); };
     const thumb = el.querySelector(".imgrow img"), ifn = el.querySelector(".imgrow .fn"), noimg = el.querySelector('[data-a="noimg"]'), gi = el.querySelector(".gi");
     const setImg = ()=>{
       const src = imgSrc(r);
