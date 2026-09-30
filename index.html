@@ -27,11 +27,12 @@ body{background:var(--space);color:var(--ink);font-family:var(--font);overflow:h
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
-#globe{position:absolute;inset:0;z-index:0;isolation:isolate}
+#stars{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block}
+#globe{position:absolute;inset:0;z-index:1;isolation:isolate}
 header{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;padding:22px 28px;pointer-events:none;z-index:3;
   background:linear-gradient(to bottom, rgba(4,6,15,.75), transparent)}
-header h1{margin:0;font-size:clamp(22px,3vw,38px);font-weight:800;letter-spacing:-.03em;text-shadow:0 2px 20px rgba(0,0,0,.6)}
-header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
+header h1{margin:0;font-size:clamp(30px,4.6vw,66px);font-weight:800;letter-spacing:-.035em;line-height:1.1;text-shadow:0 2px 24px rgba(0,0,0,.7)}
+header p{margin:10px 0 0;color:#C9D0EE;font-size:clamp(15px,1.8vw,24px);font-weight:600;text-shadow:0 2px 14px rgba(0,0,0,.7)}
 
 .pin{position:relative;width:0;height:0;border:0;background:none;padding:0;pointer-events:auto}
 .pin .dot{position:absolute;left:-15px;top:-11px;width:30px;height:22px;border-radius:4px;background:var(--flag,none) center/cover no-repeat, var(--c);
@@ -59,25 +60,25 @@ body.placing .pin{pointer-events:none}
 #qrbox img,#qrbox canvas{width:132px!important;height:132px!important;display:block}
 #qr p{margin:8px 0 0;font-weight:800;font-size:13px}
 
-#info{position:absolute;left:24px;top:calc(110px + env(safe-area-inset-top,0px));width:min(380px,calc(100% - 48px));max-height:calc(100% - 150px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+#info{position:absolute;left:24px;top:calc(clamp(120px, 10.5vw, 190px) + env(safe-area-inset-top,0px));width:min(clamp(400px, 36vw, 640px),calc(100% - 48px));max-height:calc(100% - clamp(120px, 10.5vw, 190px) - 110px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
   display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:4;opacity:0;transform:translateX(-16px);pointer-events:none;transition:opacity .3s,transform .3s}
 #info.show{opacity:1;transform:none;pointer-events:auto}
-#info .pic{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;flex:none;background:#0A0E22}
+#info .pic{width:100%;aspect-ratio:16/9;max-height:38vh;object-fit:cover;display:block;flex:none;background:#0A0E22}
 #info .pic.none{display:none}
-#info .body{padding:18px 20px 8px;overflow:auto;flex:1 1 auto;min-height:0}
-#info h2{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;padding-right:30px}
+#info .body{padding:clamp(18px,1.6vw,28px) clamp(20px,1.8vw,32px) 10px;overflow:auto;flex:1 1 auto;min-height:0}
+#info h2{margin:0;font-size:clamp(26px,2.6vw,44px);font-weight:800;letter-spacing:-.025em;line-height:1.15;display:flex;align-items:center;gap:clamp(10px,1vw,16px);padding-right:34px}
 #info h2 .sw{width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 12px var(--c);flex:none}
-#info h2 .sw.flag{width:34px;height:25px;border-radius:4px;background:var(--flag) center/cover no-repeat;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 2px 8px rgba(0,0,0,.4)}
-#info .desc{margin:12px 0 4px;line-height:1.75;font-size:15px;color:#DCE1F5;white-space:pre-wrap;word-break:keep-all}
+#info h2 .sw.flag{width:clamp(36px,3.4vw,58px);height:clamp(27px,2.55vw,43px);border-radius:4px;background:var(--flag) center/cover no-repeat;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#info .desc{margin:clamp(12px,1.1vw,20px) 0 6px;line-height:1.75;font-size:clamp(16px,1.35vw,23px);color:#DCE1F5;white-space:pre-wrap;word-break:keep-all}
 #info .desc:empty{display:none}
-#info .x{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(4,6,15,.6);font-size:18px;line-height:1;z-index:1}
-#info .play{flex:none;padding:12px 20px 16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
+#info .x{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(4,6,15,.6);font-size:18px;line-height:1;z-index:1}
+#info .play{flex:none;padding:14px clamp(20px,1.8vw,32px) 18px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px}
 #info .play .meta{flex:1;min-width:0}
-#info .bar{height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+#info .bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden}
 #info .bar i{display:block;height:100%;width:0;background:var(--c)}
-#info .time{font-size:12px;color:var(--mute);margin-top:6px;font-variant-numeric:tabular-nums}
-#info .play button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px;flex:none}
+#info .time{font-size:clamp(13px,1vw,16px);color:var(--mute);margin-top:6px;font-variant-numeric:tabular-nums}
+#info .play button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:10px 18px;font-weight:700;font-size:clamp(14px,1.05vw,17px);flex:none}
 #info .play button:hover{background:var(--card2)}
 body.reading .hint{display:none}
 #plane{position:absolute;left:0;top:0;width:0;height:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .25s}
@@ -109,8 +110,10 @@ body.viewer #master{display:none}
 #toast.show{opacity:1}
 #loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--mute);z-index:1;pointer-events:none}
 
-#adminBtn{position:absolute;top:calc(22px + env(safe-area-inset-top,0px));right:24px;z-index:4;border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px;backdrop-filter:blur(6px)}
-#adminBtn:hover{background:var(--card2)}
+.tools{position:absolute;top:calc(22px + env(safe-area-inset-top,0px));right:24px;z-index:4;display:flex;gap:8px}
+.tools button{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:9px 18px;font-weight:600;font-size:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;gap:6px}
+.tools button:hover{background:var(--card2)}
+.tools svg{width:16px;height:16px}
 #panel{position:absolute;top:0;right:0;bottom:0;width:min(440px,100%);background:#0A0E22;border-left:1px solid var(--line);z-index:6;
   transform:translateX(105%);transition:transform .3s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 #panel.open{transform:none}
@@ -164,18 +167,24 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
   .hint{display:none}
   #qr{display:none}
   .pin .lbl{font-size:12px}
+  #fsLbl{display:none}
+  .tools button{padding:9px 12px}
 }
 @media (prefers-reduced-motion:reduce){.pin.on .ring{animation:none;opacity:.6;transform:scale(2)}}
 </style>
 </head>
 <body>
 <div id="loading">지구본을 불러오는 중…</div>
+<canvas id="stars" aria-hidden="true"></canvas>
 <div id="globe" aria-label="회전할 수 있는 3D 지구본"></div>
 <header>
   <h1 id="title"></h1>
   <p id="sub"></p>
 </header>
-<button id="adminBtn">관리</button>
+<div class="tools">
+  <button id="fsBtn" hidden title="전체화면 (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path id="fsIcon" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span id="fsLbl">전체화면</span></button>
+  <button id="adminBtn">관리</button>
+</div>
 <div class="hint">드래그해서 돌리기 · 휠로 확대/축소</div>
 <div id="qr"><div id="qrbox"></div><p>QR로 함께 듣기</p></div>
 <div id="plane" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#fff" d="M21 12c0-.6-.4-1-1-1h-5.6L9.6 3.4c-.2-.3-.5-.4-.8-.4H7.5l2.6 8H5L3.4 9H2l1 3-1 3h1.4L5 13h5.1l-2.6 8h1.3c.3 0 .6-.1.8-.4l4.8-7.6H20c.6 0 1-.4 1-1z"/></svg></div>
@@ -211,6 +220,7 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!importan
       <label class="fld"><span>안내 문구</span><input id="fSub" maxlength="120"></label>
       <label class="chk"><input type="checkbox" id="fLoop"> 관객 화면에서 지역 음원이 끝나면 반복 재생</label>
       <label class="chk"><input type="checkbox" id="fSpin"> 가만히 두면 지구본이 천천히 회전</label>
+      <label class="chk"><input type="checkbox" id="fFx"> 움직이는 구름과 우주 효과 (반짝이는 별, 별똥별, 인공위성)</label>
       <p class="note">여기서 넣은 음원·이미지는 이 컴퓨터의 브라우저에만 저장돼요. <span id="usage"></span></p>
       <div class="box">
         <h3>QR로 들어온 관객 화면에 반영하기</h3>
@@ -448,14 +458,14 @@ function initGlobe(){
   globe = Globe({ animateIn: true })($("globe"))
     .globeImageUrl(TEX + "earth-blue-marble.jpg")
     .bumpImageUrl(TEX + "earth-topology.png")
-    .backgroundImageUrl(TEX + "night-sky.png")
+    .backgroundColor("rgba(0,0,0,0)")
     .showAtmosphere(true).atmosphereColor("#7EC8FF").atmosphereAltitude(.2)
     .htmlElementsData([])
     .htmlLat("lat").htmlLng("lon").htmlAltitude(.01)
     .htmlTransitionDuration(0)
     .htmlElement(r => pinEl(r))
     .onGlobeClick(({lat, lng}) => { if (placing) placeAt(lat, lng); })
-    .onGlobeReady(()=> $("loading").remove())
+    .onGlobeReady(()=>{ $("loading").remove(); addClouds(); })
     .pathsData([]).pathPoints("pts").pathPointLat(p=>p[0]).pathPointLng(p=>p[1]).pathPointAlt(p=>p[2])
     .pathColor(()=> ["rgba(255,255,255,0.25)", "rgba(255,255,255,0.95)"]).pathStroke(null).pathResolution(1);
   const c = globe.controls();
@@ -546,11 +556,115 @@ function flightFrame(now){
   drawPlane(ll[0], ll[1], alt, planeHeading);
   if (raw >= 1){
     const done = f.onArrive; flight = null; following = false;
-    trailTimer = setTimeout(()=>{ if (!flight) globe.pathsData([]); }, 4000);
+    trailTimer = setTimeout(()=>{ if (!flight) globe.pathsData([]); }, 1000);   // 도착 1초 뒤 항로를 지워요
     done && done();
   }
 }
 requestAnimationFrame(flightFrame);
+
+/* ---------- 움직이는 구름 ----------
+   지구본 라이브러리 안의 3D 부품을 그대로 빌려 써서, 지구 위에 구름층을 한 겹 더 씌워요 */
+let clouds = null;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function addClouds(){
+  try {
+    const mat = globe.globeMaterial();
+    let earth = null;
+    globe.scene().traverse(o=>{ if (!earth && o.isMesh && o.material === mat) earth = o; });
+    if (!earth || earth.geometry.type !== "SphereGeometry" || !mat.map) return;
+    const img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = ()=>{
+      const tex = new mat.map.constructor(img); tex.needsUpdate = true;
+      if ("colorSpace" in mat.map) tex.colorSpace = mat.map.colorSpace;
+      const p = earth.geometry.parameters;
+      const geo = new earth.geometry.constructor(p.radius * 1.006, 96, 64);
+      const cm = new mat.constructor({ map: tex, transparent: true, opacity: .85, depthWrite: false });
+      clouds = new earth.constructor(geo, cm);
+      clouds.visible = state.fx !== false;
+      earth.parent.add(clouds);
+      let last = performance.now();
+      (function spin(now){
+        const dt = Math.min(100, now - last); last = now;
+        if (!reduceMotion) clouds.rotation.y += dt * 0.0000045;   // 구름이 지구보다 천천히 흘러가요
+        requestAnimationFrame(spin);
+      })(last);
+    };
+    img.src = "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/example/clouds/clouds.png";
+  } catch(e){ /* 구름을 못 붙여도 나머지는 그대로 작동해요 */ }
+}
+
+/* ---------- 우주 배경: 반짝이는 별, 은하수, 별똥별, 인공위성 ---------- */
+(function starfield(){
+  const cv = $("stars"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, dpr = 1, stars = [], meteors = [], sats = [], nextMeteor = 0, nextSat = 0;
+  const rnd = (a, b)=> a + Math.random() * (b - a);
+  function resize(){
+    dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(W * H / 2600);
+    stars = Array.from({ length: n }, ()=>{
+      const big = Math.random() < .06;
+      return { x: Math.random()*W, y: Math.random()*H, r: big ? rnd(1.1, 1.8) : rnd(.3, 1),
+        a: rnd(.35, 1), tw: rnd(.4, 2.2), ph: Math.random()*6.28,
+        c: Math.random() < .15 ? "#FFE6C4" : Math.random() < .2 ? "#C9DAFF" : "#FFFFFF", big };
+    });
+  }
+  function milkyWay(){
+    ctx.save(); ctx.translate(W*.5, H*.5); ctx.rotate(-.5);
+    const g = ctx.createLinearGradient(0, -H*.35, 0, H*.35);
+    g.addColorStop(0, "rgba(120,140,255,0)"); g.addColorStop(.5, "rgba(150,160,255,.07)"); g.addColorStop(1, "rgba(120,140,255,0)");
+    ctx.fillStyle = g; ctx.fillRect(-W, -H*.35, W*2, H*.7);
+    ctx.restore();
+  }
+  function frame(now){
+    requestAnimationFrame(frame);
+    const on = state.fx !== false && !reduceMotion;
+    ctx.clearRect(0, 0, W, H);
+    milkyWay();
+    const t = now / 1000;
+    for (const s of stars){
+      const a = on ? s.a * (.55 + .45 * Math.sin(t * s.tw + s.ph)) : s.a * .8;
+      ctx.globalAlpha = a; ctx.fillStyle = s.c;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+      if (s.big && on){ ctx.globalAlpha = a * .35; ctx.fillRect(s.x - s.r*3, s.y - .3, s.r*6, .6); ctx.fillRect(s.x - .3, s.y - s.r*3, .6, s.r*6); }
+    }
+    ctx.globalAlpha = 1;
+    if (on){
+      // 별똥별: 5~12초마다 랜덤한 곳에서
+      if (now > nextMeteor){
+        nextMeteor = now + rnd(5000, 12000);
+        const ang = rnd(.25, .7) * (Math.random() < .5 ? 1 : -1) + (Math.random() < .5 ? 0 : Math.PI);
+        const sp = rnd(9, 15);
+        meteors.push({ x: rnd(W*.05, W*.95), y: rnd(0, H*.55), vx: Math.cos(ang)*sp, vy: Math.abs(Math.sin(ang))*sp, life: 0, max: rnd(45, 80), len: rnd(90, 180) });
+      }
+      for (const m of meteors){
+        m.x += m.vx; m.y += m.vy; m.life++;
+        const k = m.life / m.max, alpha = Math.sin(Math.PI * Math.min(1, k));
+        const sp = Math.hypot(m.vx, m.vy), tx = m.x - m.vx/sp*m.len, ty = m.y - m.vy/sp*m.len;
+        const g = ctx.createLinearGradient(m.x, m.y, tx, ty);
+        g.addColorStop(0, `rgba(255,255,255,${.95*alpha})`); g.addColorStop(1, "rgba(160,200,255,0)");
+        ctx.strokeStyle = g; ctx.lineWidth = 1.8; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(tx, ty); ctx.stroke();
+        ctx.globalAlpha = alpha; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(m.x, m.y, 1.6, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1;
+      }
+      meteors = meteors.filter(m=> m.life < m.max);
+      // 인공위성: 가끔 천천히 가로지르며 깜빡여요
+      if (now > nextSat && sats.length < 2){
+        nextSat = now + rnd(9000, 20000);
+        const fromLeft = Math.random() < .5;
+        sats.push({ x: fromLeft ? -10 : W + 10, y: rnd(H*.08, H*.9), vx: (fromLeft ? 1 : -1) * rnd(.35, .7), vy: rnd(-.12, .12), ph: Math.random()*6 });
+      }
+      for (const sa of sats){
+        sa.x += sa.vx; sa.y += sa.vy;
+        const blink = (Math.sin(now/180 + sa.ph) > .6) ? 1 : .45;
+        ctx.globalAlpha = blink; ctx.fillStyle = "#FFF3D6";
+        ctx.beginPath(); ctx.arc(sa.x, sa.y, 1.3, 0, 6.283); ctx.fill(); ctx.globalAlpha = 1;
+      }
+      sats = sats.filter(sa=> sa.x > -20 && sa.x < W + 20);
+    }
+  }
+  resize(); addEventListener("resize", resize); requestAnimationFrame(frame);
+})();
 
 /* ---------- 국기 ---------- */
 const FLAG_BASE = "https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/flags/4x3/";
@@ -918,6 +1032,34 @@ master.addEventListener("play", ()=> cueSync(true));
 master.addEventListener("durationchange", renderCues);
 master.addEventListener("loadedmetadata", renderCues);
 
+/* ---------- 전체화면 ---------- */
+const fsEl = document.documentElement;
+const fsOn = ()=> !!(document.fullscreenElement || document.webkitFullscreenElement);
+const fsSupported = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+async function toggleFullscreen(){
+  try {
+    if (!fsOn()) await (fsEl.requestFullscreen ? fsEl.requestFullscreen() : fsEl.webkitRequestFullscreen());
+    else await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen());
+  } catch(e){ toast("이 브라우저에서는 전체화면을 쓸 수 없어요"); }
+}
+function renderFs(){
+  const on = fsOn();
+  $("fsLbl").textContent = on ? "전체화면 끝내기" : "전체화면";
+  $("fsIcon").setAttribute("d", on ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5");
+  setTimeout(()=> globe && fit(), 60);
+}
+if (fsSupported){
+  $("fsBtn").hidden = false;
+  $("fsBtn").onclick = toggleFullscreen;
+  document.addEventListener("fullscreenchange", renderFs);
+  document.addEventListener("webkitfullscreenchange", renderFs);
+  document.addEventListener("keydown", e=>{
+    if (e.key !== "f" && e.key !== "F") return;
+    if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || "")) return;
+    toggleFullscreen();
+  });
+}
+
 let toastTimer;
 function toast(t){
   const el = $("toast"); el.textContent = t; el.classList.add("show");
@@ -937,7 +1079,7 @@ function renderQR(){
 function openPanel(){
   if (VIEWER) return;
   $("fTitle").value = state.title; $("fSub").value = state.subtitle;
-  $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false;
+  $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false; $("fFx").checked = state.fx !== false;
   renderList(); renderMainAdmin(); renderStartSelect(); renderRoute(); renderSpeed(); $("fAuto").checked = state.autoFly !== false; $("panel").classList.add("open"); updateUsage();
 }
 function closePanel(){ $("panel").classList.remove("open"); }
@@ -961,6 +1103,7 @@ function renderStartSelect(){
   state.regions.forEach(r=>{ const o = document.createElement("option"); o.value = r.id; o.textContent = r.name; sel.appendChild(o); });
   sel.value = startRegion() ? state.startId : (state.regions[0]?.id || "");
 }
+$("fFx").onchange = e=>{ state.fx = e.target.checked; saveState(); if (clouds) clouds.visible = state.fx !== false; };
 $("fSpin").onchange = e=>{ state.autoRotate = e.target.checked; if (!e.target.checked) globe.controls().autoRotate = false; else scheduleSpin(); saveState(); };
 
 function renderList(){
