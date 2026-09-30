@@ -34,14 +34,15 @@ header h1{margin:0;font-size:clamp(22px,3vw,38px);font-weight:800;letter-spacing
 header p{margin:6px 0 0;color:var(--mute);font-size:clamp(13px,1.3vw,16px)}
 
 .pin{position:relative;width:0;height:0;border:0;background:none;padding:0;pointer-events:auto}
-.pin .dot{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--c);
-  box-shadow:0 0 0 3px rgba(4,6,15,.6),0 0 18px var(--c);transition:transform .25s}
-.pin .ring{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:2px solid var(--c);opacity:0;pointer-events:none}
-.pin .lbl{position:absolute;white-space:nowrap;font-weight:800;font-size:clamp(12px,1.2vw,15px);padding:4px 10px;border-radius:999px;
+.pin .dot{position:absolute;left:-15px;top:-11px;width:30px;height:22px;border-radius:4px;background:var(--flag,none) center/cover no-repeat, var(--c);
+  border:2px solid #fff;box-shadow:0 0 0 2px rgba(4,6,15,.55),0 0 16px var(--c);transition:transform .25s}
+.pin.noflag .dot{left:-9px;top:-9px;width:18px;height:18px;border-radius:50%;border:0;box-shadow:0 0 0 3px rgba(4,6,15,.6),0 0 18px var(--c)}
+.pin .ring{position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:2px solid var(--c);opacity:0;pointer-events:none}
+.pin .lbl{position:absolute;white-space:nowrap;font-weight:800;font-size:clamp(12px,1.2vw,15px);padding:4px 10px;border-radius:999px;margin-left:6px;
   background:var(--card);border:1px solid var(--line);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .25s,color .25s;top:-14px;left:16px}
-.pin.left .lbl{left:auto;right:16px}
-.pin.below .lbl{left:50%;top:14px;transform:translateX(-50%)}
-.pin.above .lbl{left:50%;top:-44px;transform:translateX(-50%)}
+.pin.left .lbl{left:auto;right:22px;margin-left:0}
+.pin.below .lbl{left:50%;top:18px;transform:translateX(-50%);margin-left:0}
+.pin.above .lbl{left:50%;top:-48px;transform:translateX(-50%);margin-left:0}
 .pin:hover .dot,.pin:focus-visible .dot{transform:scale(1.35)}
 .pin.on .dot{transform:scale(1.5)}
 .pin.on .lbl{background:var(--c);color:#0B0E22;border-color:transparent}
@@ -67,6 +68,7 @@ body.placing .pin{pointer-events:none}
 #info .body{padding:18px 20px 8px;overflow:auto;flex:1 1 auto;min-height:0}
 #info h2{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;padding-right:30px}
 #info h2 .sw{width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 12px var(--c);flex:none}
+#info h2 .sw.flag{width:34px;height:25px;border-radius:4px;background:var(--flag) center/cover no-repeat;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 2px 8px rgba(0,0,0,.4)}
 #info .desc{margin:12px 0 4px;line-height:1.75;font-size:15px;color:#DCE1F5;white-space:pre-wrap;word-break:keep-all}
 #info .desc:empty{display:none}
 #info .x{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(4,6,15,.6);font-size:18px;line-height:1;z-index:1}
@@ -279,7 +281,8 @@ const DEFAULTS = {
       "color": "#00C2A8",
       "desc": "궁중음악·민속음악의 전통 위에 현대 대중음악이 빠르게 결합하며 독자적인 음악 문화를 이룬 나라입니다.\n\n음악의 특징\n• 장단의 변화로 흐름을 만드는 리듬감\n• 판소리·민요에 나타나는 굴곡 있는 시김새\n• 정악·산조·농악 등 서로 다른 전통 양식\n• K-pop을 비롯한 현대적 제작 방식과 강한 퍼포먼스 문화",
       "img": "Images/한국.jpg",
-      "audio": "Audio/한국.mp3"
+      "audio": "Audio/한국.mp3",
+      "flag": "kr"
     },
     {
       "id": "mongolia",
@@ -290,7 +293,8 @@ const DEFAULTS = {
       "color": "#FFB400",
       "desc": "넓은 초원과 유목 문화가 음악의 정서에 깊게 스며든 나라입니다. 자연의 소리와 말의 움직임을 닮은 표현이 두드러집니다.\n\n음악의 특징\n• 흐미(목노래)처럼 한 사람이 여러 배음을 내는 독특한 창법\n• 마두금의 길고 서정적인 선율\n• 긴 호흡과 넓은 음역을 쓰는 장가(長歌)\n• 초원·말·바람을 떠올리게 하는 개방적이고 명상적인 분위기",
       "img": "Images/몽골.jpg",
-      "audio": "Audio/몽골.mp3"
+      "audio": "Audio/몽골.mp3",
+      "flag": "mn"
     },
     {
       "id": "india",
@@ -301,7 +305,8 @@ const DEFAULTS = {
       "color": "#FF8FC7",
       "desc": "매우 오래된 고전 전통과 지역 민속음악, 영화음악이 함께 발전한 거대한 음악 문화권입니다.\n\n음악의 특징\n• 라가에 따라 시간·계절·정서를 표현하는 선율 체계\n• 탈라로 이루어진 정교한 순환 리듬\n• 즉흥연주와 드론음의 중요성\n• 힌두스타니와 카르나틱으로 나뉘는 고전 전통",
       "img": "Images/인도.jpg",
-      "audio": "Audio/인도.mp3"
+      "audio": "Audio/인도.mp3",
+      "flag": "in"
     },
     {
       "id": "guinea",
@@ -312,7 +317,8 @@ const DEFAULTS = {
       "color": "#FF6F91",
       "desc": "서아프리카의 풍부한 타악 전통과 공동체 춤 문화로 잘 알려진 나라입니다.\n\n음악의 특징\n• 젬베·둔둔이 만드는 복합 리듬\n• 여러 리듬이 겹쳐지는 폴리리듬\n• 리더와 연주자·춤꾼이 주고받는 콜 앤드 리스폰스\n• 의식·축제·일상에 함께하는 참여형 음악 문화",
       "img": "Images/기니.jpg",
-      "audio": "Audio/기니.mp3"
+      "audio": "Audio/기니.mp3",
+      "flag": "gn"
     },
     {
       "id": "united_kingdom",
@@ -323,7 +329,8 @@ const DEFAULTS = {
       "color": "#4DD0E1",
       "desc": "잉글랜드·스코틀랜드·웨일스·북아일랜드의 민속 전통과 세계적인 현대 대중음악이 함께 흐르는 나라입니다.\n\n음악의 특징\n• 발라드와 민요 중심의 이야기 노래 전통\n• 피들·아코디언·휘슬을 활용한 지역 춤 음악\n• 브라스 밴드와 합창 문화\n• 록·펑크·브릿팝·전자음악으로 이어진 현대 대중음악의 영향력",
       "img": "Images/영국.jpg",
-      "audio": "Audio/영국.mp3"
+      "audio": "Audio/영국.mp3",
+      "flag": "gb"
     },
     {
       "id": "scotland",
@@ -334,7 +341,8 @@ const DEFAULTS = {
       "color": "#5FD4F4",
       "desc": "켈트 전통과 공동체 춤 문화가 살아 있는 나라입니다. 행진과 춤에 잘 어울리는 선명한 리듬이 특징입니다.\n\n음악의 특징\n• 백파이프와 피들이 중심이 되는 민속 사운드\n• 지그·릴·스트래스페이 등 춤곡 형식\n• 짧고 날카로운 리듬을 주는 스코티시 스냅\n• 모달 선율과 합주 중심의 활기 있는 연주",
       "img": "Images/스코틀랜드.jpg",
-      "audio": "Audio/스코틀랜드.mp3"
+      "audio": "Audio/스코틀랜드.mp3",
+      "flag": "gb-sct"
     },
     {
       "id": "usa",
@@ -345,7 +353,8 @@ const DEFAULTS = {
       "color": "#C86BFA",
       "desc": "다양한 이주 문화와 아프리카계 미국인 음악 전통이 만나 현대 대중음악의 큰 흐름을 만든 나라입니다.\n\n음악의 특징\n• 블루스의 12마디 구조와 표현력 있는 보컬\n• 재즈의 즉흥연주와 스윙\n• 가스펠·컨트리·록·힙합 등 장르의 확장\n• 개인적 서사와 강한 그루브를 중시하는 대중음악 문화",
       "img": "Images/미국.jpg",
-      "audio": "Audio/미국.mp3"
+      "audio": "Audio/미국.mp3",
+      "flag": "us"
     },
     {
       "id": "brazil",
@@ -356,7 +365,8 @@ const DEFAULTS = {
       "color": "#9BE15D",
       "desc": "포르투갈·아프리카·원주민 문화가 섞이며 강한 리듬 정체성을 만든 나라입니다.\n\n음악의 특징\n• 삼바의 다층적인 타악 리듬\n• 보사노바의 부드러운 싱코페이션과 화성\n• 포호·쇼루 등 지역별로 다른 춤 음악\n• 퍼커션과 합주가 이끄는 축제적 에너지",
       "img": "Images/브라질.jpg",
-      "audio": "Audio/브라질.mp3"
+      "audio": "Audio/브라질.mp3",
+      "flag": "br"
     },
     {
       "id": "hawaii",
@@ -367,7 +377,8 @@ const DEFAULTS = {
       "color": "#2EC27E",
       "desc": "폴리네시아 전통과 섬의 자연, 이주 문화가 어우러진 태평양 음악 문화권입니다.\n\n음악의 특징\n• 멜레(mēle)로 전해지는 노래와 이야기\n• 우쿨렐레와 슬랙 키 기타의 부드러운 울림\n• 훌라의 동작과 연결되는 노래·리듬\n• 바다와 석양을 떠올리게 하는 느긋하고 따뜻한 분위기",
       "img": "Images/하와이.jpg",
-      "audio": "Audio/하와이.mp3"
+      "audio": "Audio/하와이.mp3",
+      "flag": "us-hi"
     }
   ]
 };
@@ -444,7 +455,7 @@ function initGlobe(){
     .htmlTransitionDuration(0)
     .htmlElement(r => pinEl(r))
     .onGlobeClick(({lat, lng}) => { if (placing) placeAt(lat, lng); })
-    .onGlobeReady(()=>{ $("loading").remove(); setTimeout(showStart, 600); })
+    .onGlobeReady(()=> $("loading").remove())
     .pathsData([]).pathPoints("pts").pathPointLat(p=>p[0]).pathPointLng(p=>p[1]).pathPointAlt(p=>p[2])
     .pathColor(()=> ["rgba(255,255,255,0.25)", "rgba(255,255,255,0.95)"]).pathStroke(null).pathResolution(1);
   const c = globe.controls();
@@ -541,12 +552,29 @@ function flightFrame(now){
 }
 requestAnimationFrame(flightFrame);
 
+/* ---------- 국기 ---------- */
+const FLAG_BASE = "https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/flags/4x3/";
+const HAWAII_FLAG = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDAgNDgwIj48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMCAwaDY0MHY2MEgweiIvPjxwYXRoIGZpbGw9IiNDODEwMkUiIGQ9Ik0wIDYwaDY0MHY2MEgweiIvPjxwYXRoIGZpbGw9IiMwMTIxNjkiIGQ9Ik0wIDEyMGg2NDB2NjBIMHoiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMCAxODBoNjQwdjYwSDB6Ii8+PHBhdGggZmlsbD0iI0M4MTAyRSIgZD0iTTAgMjQwaDY0MHY2MEgweiIvPjxwYXRoIGZpbGw9IiMwMTIxNjkiIGQ9Ik0wIDMwMGg2NDB2NjBIMHoiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNMCAzNjBoNjQwdjYwSDB6Ii8+PHBhdGggZmlsbD0iI0M4MTAyRSIgZD0iTTAgNDIwaDY0MHY2MEgweiIvPjxzdmcgeD0iMCIgeT0iMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyNDAiIHZpZXdCb3g9IjAgMCA2NDAgNDgwIj4gPHBhdGggZmlsbD0iIzAxMjE2OSIgZD0iTTAgMGg2NDB2NDgwSDB6Ii8+IDxwYXRoIGZpbGw9IiNGRkYiIGQ9Im03NSAwIDI0NCAxODFMNTYyIDBoNzh2NjJMNDAwIDI0MWwyNDAgMTc4djYxaC04MEwzMjAgMzAxIDgxIDQ4MEgwdi02MGwyMzktMTc4TDAgNjRWMHoiLz4gPHBhdGggZmlsbD0iI0M4MTAyRSIgZD0ibTQyNCAyODEgMjE2IDE1OXY0MEwzNjkgMjgxem0tMTg0IDIwIDYgMzVMNTQgNDgwSDB6TTY0MCAwdjNMMzkxIDE5MWwyLTQ0TDU5MCAwek0wIDBsMjM5IDE3NmgtNjBMMCA0MnoiLz4gPHBhdGggZmlsbD0iI0ZGRiIgZD0iTTI0MSAwdjQ4MGgxNjBWMHpNMCAxNjB2MTYwaDY0MFYxNjB6Ii8+IDxwYXRoIGZpbGw9IiNDODEwMkUiIGQ9Ik0wIDE5M3Y5Nmg2NDB2LTk2ek0yNzMgMHY0ODBoOTZWMHoiLz4gPC9zdmc+PC9zdmc+";
+const FLAG_BY_ID = { korea:"kr", south_korea:"kr", mongolia:"mn", india:"in", guinea:"gn", united_kingdom:"gb", uk:"gb",
+  scotland:"gb-sct", usa:"us", united_states:"us", brazil:"br", hawaii:"us-hi", mexico:"mx", france:"fr", greece:"gr",
+  turkey:"tr", japan:"jp", china:"cn", spain:"es", italy:"it", germany:"de", ireland:"ie", argentina:"ar", cuba:"cu",
+  jamaica:"jm", egypt:"eg", nigeria:"ng", mali:"ml", indonesia:"id", australia:"au", russia:"ru", iran:"ir", peru:"pe", ghana:"gh", senegal:"sn" };
+const flagCode = r=> String(r.flag || FLAG_BY_ID[r.id] || "").trim().toLowerCase();
+function flagUrl(r){
+  const c = flagCode(r); if (!c) return "";
+  if (c === "us-hi" || c === "hawaii") return HAWAII_FLAG;
+  if (!/^[a-z]{2}(-[a-z]{2,3})?$/.test(c)) return "";
+  return FLAG_BASE + c + ".svg";
+}
+
 /* ---------- 핀 ---------- */
 const pinEls = {};
 function pinEl(r){
   const b = document.createElement("button");
   b.className = "pin " + (r.label || "right");
   b.style.setProperty("--c", r.color);
+  const fu = flagUrl(r);
+  if (fu) b.style.setProperty("--flag", `url("${fu}")`); else b.classList.add("noflag");
   b.setAttribute("aria-label", `${r.name} 음악 재생`);
   b.innerHTML = `<span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="dot"></span><span class="lbl"></span>`;
   b.querySelector(".lbl").textContent = r.name;
@@ -680,6 +708,9 @@ function showInfo(r){
   const box = $("info"), pic = box.querySelector(".pic");
   box.style.setProperty("--c", r.color);
   box.querySelector(".nm").textContent = r.name;
+  const sw = box.querySelector("h2 .sw"), fu = flagUrl(r);
+  sw.classList.toggle("flag", !!fu);
+  sw.style.setProperty("--flag", fu ? `url("${fu}")` : "none");
   box.querySelector(".desc").textContent = r.desc || "";
   // 이미지 찾는 순서: 이 컴퓨터에 넣은 이미지 → 지정된 파일 → images/한글이름.png(.jpg 등) → images/영문id.png(.jpg 등)
   const list = imgCandidates(r), token = {};
@@ -805,7 +836,8 @@ function cueSync(fly){
   if (hit) onPin(hit.to);
   else {
     const st = startRegion();   // 첫 이동보다 앞으로 되감으면 출발 지역으로 돌아가요
-    if (st && lastStop && lastStop.id !== st.id){ hideInfo(); flyTo(st, ()=> showStart()); }
+    hideInfo();   // 첫 이동 전에는 설명을 띄우지 않아요
+    if (st && lastStop && lastStop.id !== st.id) flyTo(st);
   }
 }
 function renderCues(){
@@ -955,6 +987,7 @@ function renderList(){
         <button class="pbtn" data-a="noimg" hidden>빼기</button>
       </div>
       <div class="gh gi" hidden>관객용 GitHub 이미지 이름: <code></code></div>
+      <div class="cue"><span>국기 코드</span><input type="text" maxlength="8" placeholder="예: kr" aria-label="국기 코드" data-k="flag"><span class="flagprev" style="width:30px;height:22px;border-radius:3px;background:center/cover no-repeat;border:1px solid var(--line);flex:none"></span><span style="font-size:12px">두 글자 국가 코드 (스코틀랜드 gb-sct, 하와이 us-hi)</span></div>
       <div class="acts">
         <button class="pbtn" data-a="play">들어보기</button>
         <button class="pbtn" data-a="move">위치 옮기기</button>
@@ -965,6 +998,10 @@ function renderList(){
     color.value = r.color; name.value = r.name; label.value = r.label || "right";
     el.querySelector(".gh .ga").textContent = repoFile(r.id);
     const fn = el.querySelector(".file .fn");
+    const fin = el.querySelector('input[data-k="flag"]'), fprev = el.querySelector(".flagprev");
+    const setFlagPrev = ()=>{ const u = flagUrl(r); fprev.style.backgroundImage = u ? `url("${u}")` : "none"; };
+    fin.value = flagCode(r); setFlagPrev();
+    fin.onchange = ()=>{ r.flag = fin.value.trim().toLowerCase(); setFlagPrev(); buildPins(); saveState(); if (shown === r.id) showInfo(r); };
     const ta = el.querySelector("textarea"); ta.value = r.desc || "";
     ta.oninput = ()=>{ r.desc = ta.value; if (shown === r.id) $("info").querySelector(".desc").textContent = r.desc; saveState(); };
     const thumb = el.querySelector(".imgrow img"), ifn = el.querySelector(".imgrow .fn"), noimg = el.querySelector('[data-a="noimg"]'), gi = el.querySelector(".gi");
