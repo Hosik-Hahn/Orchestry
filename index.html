@@ -163,7 +163,7 @@ body.viewer #master{display:none}
 .box{border:1px dashed var(--line);border-radius:14px;padding:14px;margin-top:22px}
 .box h3{margin:0 0 6px;font-size:14px}
 
-body.viewer #adminBtn, body.viewer #qr, body.viewer #panel{display:none!important}
+body.viewer #adminBtn, body.viewer #qr, body.viewer #panel, body.viewer #plane{display:none!important}
 @media (max-width:720px){
   .hint{display:none}
   #qr{display:none}
@@ -532,7 +532,7 @@ function drawPlane(lat, lng, alt, heading){
 }
 function flightFrame(now){
   requestAnimationFrame(flightFrame);
-  if (!globe) return;
+  if (!globe || VIEWER) return;   // 관객 화면에는 비행기가 없어요
   if (!flight){
     // 비행하지 않을 때는 마지막으로 도착한 곳(처음엔 출발 지역)에 머물러 있어요
     const at = lastStop || startRegion();
@@ -707,9 +707,11 @@ function buildPins(){ if (globe) globe.htmlElementsData(state.regions.map(r=>({.
 function onPin(id){
   const r = state.regions.find(x=>x.id===id); if (!r) return;
   if (VIEWER){
-    if (current === id){ stopAll(); return; }
-    toggle(id, true);
-    flyTo(r, ()=> showInfo(r));
+    // 관객 화면: 비행기 없이 그 지역으로 돌아가 설명만 열고, 음악은 '재생' 버튼을 눌러야 나와요
+    hardStopAll();
+    globe.controls().autoRotate = false; clearTimeout(idleTimer);
+    globe.pointOfView({ lat: r.lat, lng: r.lon, altitude: Math.min(globe.pointOfView().altitude, 2) }, 1000);
+    showInfo(r);
   } else {
     if (current) stopAll();
     hideInfo();
@@ -787,14 +789,20 @@ async function toggle(id, deferInfo){
   if (!deferInfo){ showInfo(r); globe.pointOfView({ lat:r.lat, lng:r.lon }, 1000); }
   const a = player(id);
   a.volume = 0; a.currentTime = 0;
-  try { await a.play(); missing.delete(id); fadeTo(a, 1, FADE); setPlayUI(true); if (!VIEWER && !master.paused) toast("전체 음원과 함께 재생 중이에요"); }
+  try {
+    await a.play();
+    if (current !== id){ a.pause(); return; }   // 재생이 시작되기 전에 다른 곳을 눌렀다면 바로 멈춰요
+    missing.delete(id); fadeTo(a, 1, FADE); setPlayUI(true); if (!VIEWER && !master.paused) toast("전체 음원과 함께 재생 중이에요"); }
   catch(e){
     if (current !== id) return;
     missing.add(id); current = null; setPlayUI(false, true);
     if (!VIEWER) toast(`‘${r.name}’ 음원이 없어요. 관리에서 넣어 주세요.`);
   }
 }
-function stopAll(){ if (current) stopOne(current); endCurrent(); }
+function stopAll(){
+  if (VIEWER){ hardStopAll(); setPlayUI(false); scheduleSpin(); return; }
+  if (current) stopOne(current); endCurrent();
+}
 function endCurrent(){ current = null; setPlayUI(false); scheduleSpin(); }
 function imgSrc(r){ return imgUrls[r.id] || r.img || ""; }
 // 파일 이름이 지역 이름과 조금 달라도 찾을 수 있게 다른 이름도 함께 찾아봐요
@@ -862,7 +870,32 @@ function hideInfo(){ setActivePin(null); shown = null; $("info").classList.remov
 function setPlayUI(playing, missing){
   const box = $("info");
   box.querySelector(".play").style.display = (missing && !playing) ? "none" : "";
-  $("pauseBtn").textContent = playing ? "일시정지" : "▶ 듣기";
+  $("pauseBtn").textContent = playing ? "❚❚ 일시정지" : "▶ 재생";
+  if (!playing && !current){ box.querySelector(".bar i").style.width = "0%"; box.querySelector(".time").textContent = ""; }
+}
+/* 관객 화면용: 모든 지역 음원을 즉시 멈춰요 (휴대폰은 소리 줄이기 효과가 안 먹는 경우가 있어서 바로 정지) */
+function hardStopAll(){
+  playSeq++;
+  Object.values(players).forEach(a=>{ cancelAnimationFrame(fades.get(a)); fades.delete(a); a.pause(); try { a.currentTime = 0; } catch(e){} });
+  current = null;
+}
+let playSeq = 0;
+function playViewer(id){
+  const r = state.regions.find(x=> x.id === id); if (!r) return;
+  hardStopAll();
+  const my = playSeq;
+  current = id;
+  const a = player(id);
+  a.volume = 1;
+  setPlayUI(true);
+  a.play().then(()=>{
+    if (my !== playSeq || current !== id){ a.pause(); return; }
+    missing.delete(id);
+  }).catch(()=>{
+    if (my !== playSeq) return;
+    missing.add(id); current = null; setPlayUI(false, true);
+    toast(`‘${r.name}’ 음악이 아직 준비되지 않았어요`);
+  });
 }
 $("closeInfo").onclick = ()=>{ stopAll(); hideInfo(); };
 const fmt = s => isFinite(s) ? `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}` : "0:00";
@@ -873,6 +906,13 @@ setInterval(()=>{
   $("info").querySelector(".time").textContent = `${fmt(a.currentTime)} / ${fmt(a.duration)}`;
 }, 250);
 $("pauseBtn").onclick = ()=>{
+  if (VIEWER){
+    if (!shown) return;
+    const a = players[shown];
+    if (current === shown && a && !a.paused){ a.pause(); setPlayUI(false); $("pauseBtn").textContent = "▶ 계속"; return; }
+    if (current === shown && a && a.paused){ a.play().catch(()=>{}); setPlayUI(true); return; }
+    playViewer(shown); return;
+  }
   if (!current){ if (shown) toggle(shown, true); return; }
   const a = players[current];
   if (a.paused){ a.play(); $("pauseBtn").textContent = "일시정지"; }
