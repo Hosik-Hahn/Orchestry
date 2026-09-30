@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>세계의 소리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -398,7 +401,14 @@ const PALETTE = ["#FFB400","#5FD4F4","#FF8A3D","#3D9BFF","#FF5E5B","#8C8CFF","#2
 const TEX = "https://cdn.jsdelivr.net/npm/three-globe@2.45.2/example/img/";
 
 /* QR로 들어온 사람은 주소에 ?view 가 붙어 있어요 → 보기·듣기만 가능 */
-const VIEWER = new URLSearchParams(location.search).has("view");
+/* 누가 보는 화면인지 정해요
+   - 주소에 ?view 가 있으면 관객 화면
+   - 주소에 ?host 가 있으면 진행자 화면 (휴대폰으로 진행자 화면을 시험할 때)
+   - 둘 다 없으면: 휴대폰은 관객 화면, 컴퓨터는 진행자 화면 */
+const BUILD = "09301131";
+const QS = new URLSearchParams(location.search);
+const IS_PHONE = matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 820;
+const VIEWER = QS.has("view") || (!QS.has("host") && IS_PHONE);
 if (VIEWER) document.body.classList.add("viewer");
 
 const $ = id => document.getElementById(id);
@@ -1122,7 +1132,8 @@ function renderHeader(){ $("title").textContent = state.title; $("sub").textCont
 /* ---------- QR (관객용 주소 = 지금 주소 + ?view) ---------- */
 function renderQR(){
   if (VIEWER || !window.QRCode) return;
-  const link = location.origin + location.pathname + "?view";
+  // 버전 번호를 붙여서, 휴대폰이 예전 페이지를 기억하고 있어도 항상 최신 페이지가 열려요
+  const link = location.origin + location.pathname + "?view&v=" + BUILD;
   $("qrbox").innerHTML = "";
   new QRCode($("qrbox"), { text: link, width: 264, height: 264, colorDark:"#0B0E22", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M });
 }
