@@ -499,7 +499,7 @@ function initGlobe(){
 }
 function fit(){ globe.width(innerWidth).height(innerHeight); }
 /* 진행자 화면에서 전체 음원을 아직 시작하지 않은 상태 */
-const START_ALT = 2.3, PLAY_ALT = 1.55;
+const START_ALT = 2.3, PLAY_ALT = 1.2;
 function preStart(){ return !VIEWER && master.paused && (master.currentTime || 0) < .5; }
 function homeView(ms){
   const st = startRegion(); if (!st || !globe) return;
@@ -1248,7 +1248,7 @@ if (!VIEWER) master.addEventListener("play", ()=>{
   if ((master.currentTime || 0) > 1 || !globe || flight) return;
   const st = startRegion(); if (!st) return;
   clearTimeout(idleTimer); globe.controls().autoRotate = false;
-  globe.pointOfView({ lat: st.lat, lng: st.lon, altitude: PLAY_ALT }, 2800);
+  globe.pointOfView({ lat: st.lat, lng: st.lon, altitude: PLAY_ALT }, 10000);   // 10초에 걸쳐 천천히 확대
 });
 $("fwTest").onclick = ()=>{ closePanel(); fireworks.play(5000); };
 
