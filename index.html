@@ -30,6 +30,7 @@ body{background:var(--space);color:var(--ink);font-family:var(--font);overflow:h
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 
+#fireworks{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none;display:block}
 #stars{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block}
 #globe{position:absolute;inset:0;z-index:1;isolation:isolate}
 header{position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;padding:22px 28px;pointer-events:none;z-index:3;
@@ -104,6 +105,11 @@ body.reading .hint{display:none}
 .rg .cue span{color:var(--mute);flex:none}
 .rg .cue input{width:92px!important;flex:none;text-align:center;font-variant-numeric:tabular-nums}
 body.viewer #master{display:none}
+/* 전체 음원 재생 중 마우스를 가만히 두면 버튼들이 사라져요 */
+#master, .tools, .hint{transition:opacity .5s, transform .5s}
+body.idle #master{opacity:0;pointer-events:none;transform:translate(-50%, 12px)}
+body.idle .tools, body.idle .hint{opacity:0;pointer-events:none}
+body.idle, body.idle *{cursor:none!important}
 @media (max-width:900px){ #master{width:calc(100% - 40px);min-width:0} .hint{display:none} }
 @media (max-width:720px){
   #info{left:12px;right:12px;width:auto;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-height:58%;transform:translateY(20px)}
@@ -180,6 +186,7 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel, body.viewer #plane{d
 <body>
 <div id="loading">지구본을 불러오는 중…</div>
 <canvas id="stars" aria-hidden="true"></canvas>
+<canvas id="fireworks" aria-hidden="true"></canvas>
 <div id="globe" aria-label="회전할 수 있는 3D 지구본"></div>
 <header>
   <h1 id="title"></h1>
@@ -267,6 +274,7 @@ body.viewer #adminBtn, body.viewer #qr, body.viewer #panel, body.viewer #plane{d
       <p class="note" id="speedNote" style="margin:-4px 0 0"></p>
       <div class="sec"><span id="routeCnt">이동</span><button class="pbtn primary" id="addMove">+ 이동 추가</button></div>
       <div id="route"></div>
+      <div class="row" style="justify-content:flex-start;margin:6px 0 0"><button class="pbtn" id="fwTest">🎆 끝날 때 폭죽 미리 보기</button></div>
       <p class="note">음원을 틀어 놓고 원하는 순간에 "+ 이동 추가"를 누르면 그 시각이 들어가요. 같은 지역을 여러 번 넣어도 되고, 시간순으로 자동 정렬돼요. 비행 시간은 위 "비행 속도"에 적힌 만큼 걸리니, 도착 시점에 맞추려면 그만큼 일찍 잡아 주세요. 스페이스바로 재생/일시정지할 수 있어요.</p>
     </section>
   </div>
@@ -1122,6 +1130,108 @@ if (fsSupported){
   });
 }
 
+/* ---------- 재생 중 버튼 자동 숨기기 (진행자 화면) ---------- */
+let idleTimer2 = 0;
+const IDLE_MS = 1000;
+function setIdle(on){ document.body.classList.toggle("idle", on); }
+function armIdle(){
+  clearTimeout(idleTimer2);
+  if (VIEWER || master.paused || $("panel").classList.contains("open") || placing) return;
+  idleTimer2 = setTimeout(()=>{
+    if (!master.paused && !$("panel").classList.contains("open") && !placing) setIdle(true);
+  }, IDLE_MS);
+}
+function wake(){ setIdle(false); armIdle(); }
+if (!VIEWER){
+  master.addEventListener("play", ()=> armIdle());
+  master.addEventListener("pause", ()=>{ clearTimeout(idleTimer2); setIdle(false); });
+  master.addEventListener("ended", ()=>{ clearTimeout(idleTimer2); setIdle(false); });
+  let lx = -1, ly = -1;
+  addEventListener("mousemove", e=>{
+    if (Math.abs(e.clientX - lx) + Math.abs(e.clientY - ly) < 3) return;   // 미세한 떨림은 무시
+    lx = e.clientX; ly = e.clientY; wake();
+  });
+  addEventListener("pointerdown", wake);
+  addEventListener("wheel", wake, { passive:true });
+  addEventListener("keydown", e=>{ if (e.code !== "Space") wake(); });
+}
+
+/* ---------- 전체 음원이 끝나면 폭죽 (5초) ---------- */
+const fireworks = (()=>{
+  const cv = $("fireworks"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, dpr = 1, rockets = [], sparks = [], until = 0, nextLaunch = 0, running = false;
+  const COLORS = ["#FF4D6D","#FFB400","#FFE66D","#4DD0E1","#7EC8FF","#9BE15D","#C86BFA","#FF8FC7","#FFFFFF","#00C2A8"];
+  const rnd = (a, b)=> a + Math.random() * (b - a), pick = a=> a[Math.floor(Math.random()*a.length)];
+  function resize(){ dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  function launch(){
+    const x = rnd(W*.12, W*.88);
+    rockets.push({ x, y: H + 10, vx: rnd(-1.2, 1.2), vy: -rnd(H*.012 + 9, H*.012 + 14), ty: rnd(H*.12, H*.5), c: pick(COLORS), trail: [] });
+  }
+  function burst(x, y, c){
+    const kind = Math.random(), n = Math.round(rnd(90, 150)), c2 = pick(COLORS);
+    for (let i = 0; i < n; i++){
+      const a = Math.PI*2*i/n + rnd(-.05,.05);
+      let sp = rnd(2.5, 7.5);
+      if (kind < .25) sp = 6 + Math.sin(a*5)*2.2;                 // 별 모양
+      else if (kind < .45) sp = rnd(5.5, 6.5);                      // 동그란 고리
+      sparks.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp, life: 0, max: rnd(55, 95),
+        c: Math.random() < .25 ? c2 : c, r: rnd(1.4, 2.6), glitter: Math.random() < .35 });
+    }
+    // 가운데 반짝 섬광
+    sparks.push({ x, y, vx:0, vy:0, life:0, max:12, c:"#FFFFFF", r: 28, flash:true });
+  }
+  function frame(now){
+    if (!running) return;
+    requestAnimationFrame(frame);
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.fillRect(0, 0, W, H);   // 잔상이 남도록 천천히 지워요
+    ctx.globalCompositeOperation = "lighter";
+    if (now < until && now > nextLaunch){
+      const n = Math.random() < .3 ? 3 : Math.random() < .6 ? 2 : 1;
+      for (let i = 0; i < n; i++) launch();
+      nextLaunch = now + rnd(180, 420);
+    }
+    for (const r of rockets){
+      r.x += r.vx; r.y += r.vy; r.vy += .18;
+      r.trail.push([r.x, r.y]); if (r.trail.length > 8) r.trail.shift();
+      ctx.strokeStyle = r.c; ctx.lineWidth = 2; ctx.globalAlpha = .9;
+      ctx.beginPath(); r.trail.forEach(([x,y],i)=> i ? ctx.lineTo(x,y) : ctx.moveTo(x,y)); ctx.stroke();
+      if (r.y <= r.ty || r.vy >= -1){ r.done = true; burst(r.x, r.y, r.c); }
+    }
+    rockets = rockets.filter(r=> !r.done);
+    for (const p of sparks){
+      p.life++;
+      const k = p.life / p.max;
+      if (p.flash){
+        ctx.globalAlpha = 1 - k; const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r*(1+k*2));
+        g.addColorStop(0, "rgba(255,255,255,.9)"); g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r*(1+k*2), 0, 6.283); ctx.fill(); continue;
+      }
+      p.vx *= .965; p.vy = p.vy*.965 + .07; p.x += p.vx; p.y += p.vy;
+      let a = Math.max(0, 1 - k);
+      if (p.glitter) a *= Math.random() < .5 ? 1 : .25;
+      ctx.globalAlpha = a; ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 - k*.5), 0, 6.283); ctx.fill();
+    }
+    sparks = sparks.filter(p=> p.life < p.max);
+    ctx.globalAlpha = 1;
+    if (now > until && !rockets.length && !sparks.length){
+      running = false; ctx.globalCompositeOperation = "source-over"; ctx.clearRect(0, 0, W, H);
+    }
+  }
+  addEventListener("resize", resize);
+  return {
+    play(ms = 5000){
+      resize();
+      until = performance.now() + ms; nextLaunch = 0;
+      for (let i = 0; i < 3; i++) setTimeout(launch, i*120);   // 시작하자마자 화려하게
+      if (!running){ running = true; requestAnimationFrame(frame); }
+    }
+  };
+})();
+if (!VIEWER) master.addEventListener("ended", ()=> fireworks.play(5000));
+$("fwTest").onclick = ()=>{ closePanel(); fireworks.play(5000); };
+
 let toastTimer;
 function toast(t){
   const el = $("toast"); el.textContent = t; el.classList.add("show");
@@ -1140,12 +1250,13 @@ function renderQR(){
 
 /* ---------- 관리 화면 (진행자만) ---------- */
 function openPanel(){
+  if (typeof setIdle === "function"){ setIdle(false); clearTimeout(idleTimer2); }
   if (VIEWER) return;
   $("fTitle").value = state.title; $("fSub").value = state.subtitle;
   $("fLoop").checked = !!state.loop; $("fSpin").checked = state.autoRotate !== false; $("fFx").checked = state.fx !== false;
   renderList(); renderMainAdmin(); renderStartSelect(); renderRoute(); renderSpeed(); $("fAuto").checked = state.autoFly !== false; $("panel").classList.add("open"); updateUsage();
 }
-function closePanel(){ $("panel").classList.remove("open"); }
+function closePanel(){ $("panel").classList.remove("open"); armIdle(); }
 document.querySelectorAll(".tabs button").forEach(b=> b.onclick = ()=> showTab(b.dataset.tab));
 function showTab(name){
   document.querySelectorAll(".tabs button").forEach(b=> b.setAttribute("aria-selected", b.dataset.tab === name));
