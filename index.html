@@ -498,8 +498,21 @@ function initGlobe(){
   scheduleSpin();
 }
 function fit(){ globe.width(innerWidth).height(innerHeight); }
+/* 진행자 화면에서 전체 음원을 아직 시작하지 않은 상태 */
+const START_ALT = 2.3, PLAY_ALT = 1.55;
+function preStart(){ return !VIEWER && master.paused && (master.currentTime || 0) < .5; }
+function homeView(ms){
+  const st = startRegion(); if (!st || !globe) return;
+  globe.pointOfView({ lat: st.lat, lng: st.lon, altitude: START_ALT }, ms);
+}
 function scheduleSpin(){
   clearTimeout(idleTimer);
+  if (preStart()){
+    // 시작 전에는 대한민국(출발 지역)에 고정: 지구본을 돌려도 잠시 뒤 제자리로 돌아와요
+    globe.controls().autoRotate = false;
+    idleTimer = setTimeout(()=>{ if (preStart() && !placing && !flight) homeView(1400); }, 2500);
+    return;
+  }
   idleTimer = setTimeout(()=>{
     const c = globe.controls();
     c.autoRotate = state.autoRotate !== false && !current && !placing && !flight && (VIEWER || master.paused) && !matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1230,6 +1243,13 @@ const fireworks = (()=>{
   };
 })();
 if (!VIEWER) master.addEventListener("ended", ()=> fireworks.play(5000));
+/* 처음부터 재생을 시작하면 출발 지역을 향해 지구본이 천천히 다가와요 */
+if (!VIEWER) master.addEventListener("play", ()=>{
+  if ((master.currentTime || 0) > 1 || !globe || flight) return;
+  const st = startRegion(); if (!st) return;
+  clearTimeout(idleTimer); globe.controls().autoRotate = false;
+  globe.pointOfView({ lat: st.lat, lng: st.lon, altitude: PLAY_ALT }, 2800);
+});
 $("fwTest").onclick = ()=>{ closePanel(); fireworks.play(5000); };
 
 let toastTimer;
