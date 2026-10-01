@@ -60,9 +60,9 @@ body.placing .pin{pointer-events:none}
 
 .hint{position:absolute;left:28px;bottom:calc(34px + env(safe-area-inset-bottom,0px));font-size:12.5px;color:var(--mute);z-index:3;pointer-events:none}
 
-#qr{position:absolute;right:24px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#fff;color:#0B0E22;border-radius:16px;padding:12px;z-index:3;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-#qrbox img,#qrbox canvas{width:132px!important;height:132px!important;display:block}
-#qr p{margin:8px 0 0;font-weight:800;font-size:13px}
+#qr{position:absolute;right:24px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#fff;color:#0B0E22;border-radius:20px;padding:clamp(12px,1vw,18px);z-index:3;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+#qrbox img,#qrbox canvas{width:clamp(190px,14vw,280px)!important;height:clamp(190px,14vw,280px)!important;display:block}
+#qr p{margin:10px 0 2px;font-weight:800;font-size:clamp(15px,1.2vw,20px)}
 
 #info{position:absolute;left:24px;top:calc(clamp(120px, 10.5vw, 190px) + env(safe-area-inset-top,0px));width:min(clamp(380px, 31vw, 560px),calc(100% - 48px));max-height:calc(100% - clamp(120px, 10.5vw, 190px) - 110px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
   display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;
@@ -89,7 +89,7 @@ body.reading .hint{display:none}
 #plane{position:absolute;left:0;top:0;width:0;height:0;z-index:5;pointer-events:none;opacity:0;transition:opacity .25s}
 #plane.show{opacity:1}
 #plane svg{position:absolute;left:-17px;top:-17px;width:34px;height:34px;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
-#master{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(620px,calc(100% - 420px));min-width:320px;
+#master{position:absolute;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(620px,calc(100% - 2 * (clamp(190px,14vw,280px) + 60px)));min-width:300px;
   background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px 16px;display:flex;align-items:center;gap:12px;z-index:4;
   backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 #master button{width:40px;height:40px;border-radius:50%;border:0;background:var(--ink);color:#0A0E22;font-size:15px;flex:none;display:grid;place-items:center}
@@ -1265,7 +1265,7 @@ function renderQR(){
   // 버전 번호를 붙여서, 휴대폰이 예전 페이지를 기억하고 있어도 항상 최신 페이지가 열려요
   const link = location.origin + location.pathname + "?view&v=" + BUILD;
   $("qrbox").innerHTML = "";
-  new QRCode($("qrbox"), { text: link, width: 264, height: 264, colorDark:"#0B0E22", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M });
+  new QRCode($("qrbox"), { text: link, width: 560, height: 560, colorDark:"#0B0E22", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.M });
 }
 
 /* ---------- 관리 화면 (진행자만) ---------- */
