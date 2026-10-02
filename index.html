@@ -289,7 +289,38 @@ const DEFAULTS = {
   "autoRotate": true,
   "autoFly": true,
   "flightSpeed": 1,
-  "route": [],
+  "route": [
+    {
+      "id": "mmunzlwpp",
+      "time": 31,
+      "to": "mongolia"
+    },
+    {
+      "id": "mmunzm065",
+      "time": 49,
+      "to": "india"
+    },
+    {
+      "id": "mmunzm8xt",
+      "time": 68,
+      "to": "united_kingdom"
+    },
+    {
+      "id": "mmunzmunb",
+      "time": 107,
+      "to": "guinea"
+    },
+    {
+      "id": "mmunznaq9",
+      "time": 126,
+      "to": "usa"
+    },
+    {
+      "id": "mmunznoqc",
+      "time": 165,
+      "to": "korea"
+    }
+  ],
   "startId": "korea",
   "koreaAdded": true,
   "mainAudio": "Audio/세계의 아리랑.mp3",
@@ -364,7 +395,8 @@ const DEFAULTS = {
       "desc": "켈트 전통과 공동체 춤 문화가 살아 있는 나라입니다. 행진과 춤에 잘 어울리는 선명한 리듬이 특징입니다.\n\n음악의 특징\n• 백파이프와 피들이 중심이 되는 민속 사운드\n• 지그·릴·스트래스페이 등 춤곡 형식\n• 짧고 날카로운 리듬을 주는 스코티시 스냅\n• 모달 선율과 합주 중심의 활기 있는 연주",
       "img": "Images/스코틀랜드.jpg",
       "audio": "Audio/스코틀랜드.mp3",
-      "flag": "gb-sct"
+      "flag": "gb-sct",
+      "hideOnStage": true
     },
     {
       "id": "usa",
@@ -388,7 +420,8 @@ const DEFAULTS = {
       "desc": "포르투갈·아프리카·원주민 문화가 섞이며 강한 리듬 정체성을 만든 나라입니다.\n\n음악의 특징\n• 삼바의 다층적인 타악 리듬\n• 보사노바의 부드러운 싱코페이션과 화성\n• 포호·쇼루 등 지역별로 다른 춤 음악\n• 퍼커션과 합주가 이끄는 축제적 에너지",
       "img": "Images/브라질.jpg",
       "audio": "Audio/브라질.mp3",
-      "flag": "br"
+      "flag": "br",
+      "hideOnStage": true
     },
     {
       "id": "hawaii",
@@ -400,7 +433,8 @@ const DEFAULTS = {
       "desc": "폴리네시아 전통과 섬의 자연, 이주 문화가 어우러진 태평양 음악 문화권입니다.\n\n음악의 특징\n• 멜레(mēle)로 전해지는 노래와 이야기\n• 우쿨렐레와 슬랙 키 기타의 부드러운 울림\n• 훌라의 동작과 연결되는 노래·리듬\n• 바다와 석양을 떠올리게 하는 느긋하고 따뜻한 분위기",
       "img": "Images/하와이.jpg",
       "audio": "Audio/하와이.mp3",
-      "flag": "us-hi"
+      "flag": "us-hi",
+      "hideOnStage": true
     }
   ]
 };
@@ -730,7 +764,9 @@ function pinEl(r){
   pinEls[r.id] = b;
   return b;
 }
-function buildPins(){ if (globe) globe.htmlElementsData(state.regions.map(r=>({...r}))); }
+/* 진행자 화면에는 '진행 화면에 표시'가 켜진 지역만, QR 관객 화면에는 모든 지역이 보여요 */
+const onStage = r=> VIEWER || !r.hideOnStage;
+function buildPins(){ if (globe) globe.htmlElementsData(state.regions.filter(onStage).map(r=>({...r}))); }
 
 /* ---------- 핀을 눌렀을 때 ----------
    진행자: 전체 음원은 그대로 두고 비행기 이동 + 설명
@@ -1020,7 +1056,9 @@ function parseTime(str){
   if (!/^\d+(:\d{1,2}){0,2}$/.test(t)) return null;
   return t.split(":").map(Number).reduce((a, n)=> a*60 + n, 0);
 }
-const routeSorted = ()=> (state.route || []).filter(m=> isFinite(m.time) && state.regions.some(r=> r.id === m.to)).sort((a,b)=> a.time - b.time);
+const routeAll = ()=> (state.route || []).filter(m=> isFinite(m.time) && state.regions.some(r=> r.id === m.to)).sort((a,b)=> a.time - b.time);
+// 진행 화면에서 숨긴 지역으로 가는 이동은 건너뛰어요
+const routeSorted = ()=> routeAll().filter(m=> onStage(state.regions.find(r=> r.id === m.to)));
 function activeMove(time){ let hit = null; for (const m of routeSorted()){ if (m.time <= time + .25) hit = m; else break; } return hit; }
 let cueId = undefined;   // 지금 음원 위치에 해당하는 이동
 function cueSync(fly){
@@ -1053,8 +1091,9 @@ function markNow(id){ document.querySelectorAll("#route .mv[data-id]").forEach(e
 /* 이동 탭 */
 function renderRoute(){
   const list = $("route"); list.innerHTML = "";
-  const moves = routeSorted();
-  $("routeCnt").textContent = `이동 ${moves.length}번`;
+  const moves = routeAll();
+  const skipped = moves.filter(m=> !onStage(state.regions.find(r=> r.id === m.to))).length;
+  $("routeCnt").textContent = `이동 ${moves.length - skipped}번` + (skipped ? ` (숨긴 지역 ${skipped}번 건너뜀)` : "");
   const st = startRegion();
   const first = document.createElement("div"); first.className = "mv first";
   first.innerHTML = `<span class="no">0</span><input value="00:00" disabled aria-label="출발 시각"><span class="sw"></span><select disabled><option></option></select>`;
@@ -1063,6 +1102,7 @@ function renderRoute(){
   moves.forEach((m, k)=>{
     const r = state.regions.find(x=> x.id === m.to);
     const el = document.createElement("div"); el.className = "mv"; el.dataset.id = m.id;
+    if (!onStage(r)){ el.style.opacity = .45; el.title = "진행 화면에서 숨긴 지역이라 건너뛰어요"; }
     el.innerHTML = `<span class="no">${k+1}</span><input type="text" inputmode="numeric" aria-label="이동 시각"><span class="sw"></span><select aria-label="도착 지역"></select>
       <button class="ib" data-a="now" title="지금 음원 시간으로">⏱</button><button class="ib" data-a="go" title="이 이동 미리 보기">✈</button><button class="ib" data-a="del" title="삭제">✕</button>`;
     const tin = el.querySelector("input"), sel = el.querySelector("select");
@@ -1317,6 +1357,7 @@ function renderList(){
       <div class="file"><span class="fn"></span>
         <label class="pbtn">음원 선택<input type="file" accept="audio/*" hidden></label>
       </div>
+      <label class="chk" style="margin:10px 0 0;font-size:13px"><input type="checkbox" data-k="stage"> 진행 화면(내 화면)에 표시 <span style="color:var(--mute)">· QR 관객 화면에는 항상 보여요</span></label>
       <div class="gh">관객용 GitHub 음원 이름: <code class="ga"></code></div>
       <textarea maxlength="2000" placeholder="이 지역과 음악에 대한 설명을 적어 주세요. 줄바꿈도 그대로 보여요." aria-label="설명"></textarea>
       <div class="imgrow"><img alt="" hidden><span class="fn"></span>
@@ -1335,6 +1376,15 @@ function renderList(){
     color.value = r.color; name.value = r.name; label.value = r.label || "right";
     el.querySelector(".gh .ga").textContent = repoFile(r.id);
     const fn = el.querySelector(".file .fn");
+    const stg = el.querySelector('input[data-k="stage"]');
+    stg.checked = !r.hideOnStage;
+    el.style.opacity = r.hideOnStage ? .7 : 1;
+    stg.onchange = ()=>{
+      if (stg.checked) delete r.hideOnStage; else r.hideOnStage = true;
+      el.style.opacity = r.hideOnStage ? .7 : 1;
+      if (r.hideOnStage && shown === r.id) hideInfo();
+      buildPins(); saveState(); renderRoute(); renderCues(); cueId = undefined; cueSync(false);
+    };
     const fin = el.querySelector('input[data-k="flag"]'), fprev = el.querySelector(".flagprev");
     const setFlagPrev = ()=>{ const u = flagUrl(r); fprev.style.backgroundImage = u ? `url("${u}")` : "none"; };
     fin.value = flagCode(r); setFlagPrev();
